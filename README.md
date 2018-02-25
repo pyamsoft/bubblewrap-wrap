@@ -1,6 +1,7 @@
 # bubblewrap-wrap
 
-A wrapper around bubblewrap to make it a bit easier to use with normal desktop  
+A wrapper around [bubblewrap](https://github.com/projectatomic/bubblewrap) 
+to make it a bit easier to use with normal desktop  
 programs.
 
 ## What is this for
