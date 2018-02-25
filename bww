@@ -1,0 +1,406 @@
+#!/bin/sh
+
+# The GPLv2 License
+#
+#   Copyright (C) 2017  Peter Kenji Yamanaka
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# bubblewrap-wrap
+
+##
+# Bind if exists
+# $1 - path
+bind_if_exists()
+{
+  if [ -e "$1" ]; then
+    __bw_opts="${__bw_opts} --bind $1 $1"
+  fi
+}
+
+##
+# RO-Bind if exists
+# $1 - path
+robind_if_exists()
+{
+  if [ -e "$1" ]; then
+    __bw_opts="${__bw_opts} --ro-bind $1 $1"
+  fi
+}
+
+##
+# DEV-Bind if exists
+# $1 - path
+devbind_if_exists()
+{
+  if [ -e "$1" ]; then
+    __bw_opts="${__bw_opts} --dev-bind $1 $1"
+  fi
+}
+
+##
+# Make jail directory
+# $1 - jail dir
+# $2 - command
+make_jail()
+{
+  # Make the jail directory
+  mkdir -p "$1" || {
+    printf -- "Unable to prepare jail root directory for: %s\\n" "$2"
+    return 1
+  }
+
+  # Make jail home
+  mkdir -p "$1/home" || {
+    printf -- "Unable to prepare jail home directory for: %s\\n" "$2"
+    return 1
+  }
+
+  # Make jail var/tmp
+  mkdir -p "$1/var/tmp" || {
+    printf -- "Unable to prepare jail var/tmp directory for: %s\\n" "$2"
+    return 1
+  }
+
+  return 0
+}
+
+##
+# Checks to see if we should apply an option
+# $1 the option to ignore
+has_option()
+{
+  for option in ${__ignore_opts}; do
+    # Option is in ignore list, do not apply
+    if [ "${option}" = "$1" ]; then
+      return 1
+    fi
+  done
+
+  # Option was not found in ignore list, apply
+  return 0
+}
+
+main()
+{
+  if ! command -v "${__bwrap}" > /dev/null 2>&1; then
+    printf -- "bwrap is not installed.\\n"
+    return 1
+  fi
+
+  # Loop and consume arguments until we can't anymore
+
+  force_jail_name=""
+  pre_opts=""
+  binds=""
+  robinds=""
+  while :; do
+    case "$1" in
+      "--nodev")
+        __ignore_opts="${__ignore_opts} dev"
+        shift
+        ;;
+      "--noaudio")
+        __ignore_opts="${__ignore_opts} audio"
+        shift
+        ;;
+      "--nouser")
+        __ignore_opts="${__ignore_opts} user"
+        shift
+        ;;
+      "--noipc")
+        __ignore_opts="${__ignore_opts} ipc"
+        shift
+        ;;
+      "--nopid")
+        __ignore_opts="${__ignore_opts} pid"
+        shift
+        ;;
+      "--nouts")
+        __ignore_opts="${__ignore_opts} uts"
+        shift
+        ;;
+      "--nocgroup")
+        __ignore_opts="${__ignore_opts} cgroup"
+        shift
+        ;;
+      "--nosession")
+        __ignore_opts="${__ignore_opts} session"
+        shift
+        ;;
+      "--nodrop")
+        __ignore_opts="${__ignore_opts} drop"
+        shift
+        ;;
+      "--nox11")
+        __ignore_opts="${__ignore_opts} x11"
+        shift
+        ;;
+      "--nodbus")
+        __ignore_opts="${__ignore_opts} dbus"
+        shift
+        ;;
+      "--nogl")
+        __ignore_opts="${__ignore_opts} gl"
+        shift
+        ;;
+      "--nothemes")
+        __ignore_opts="${__ignore_opts} themes"
+        shift
+        ;;
+      "--dconf")
+        __ignore_opts="${__ignore_opts} nodconf"
+        shift
+        ;;
+      "--bind-if-exists")
+        # Eat argument
+        shift
+        # Add to list
+        binds="$1 ${binds}"
+        shift
+        ;;
+      "--robind-if-exists")
+        # Eat argument
+        shift
+        # Add to list
+        robinds="$1 ${robinds}"
+        shift
+        ;;
+      "--forcename")
+        # --forcename should have 1 argument, shift 1 more time
+        shift
+        force_jail_name="$1"
+        shift
+        ;;
+      "--cap-add"|"--cap-drop"|"--tmpfs")
+        # should have 1 arguments, shift 1 more times
+        pre_opts="${pre_opts} $1"
+        shift
+        pre_opts="${pre_opts} $1"
+        shift
+        ;;
+      "--setenv"|"--bind"|"--ro-bind")
+        # should have 2 arguments, shift 2 more times
+        pre_opts="${pre_opts} $1"
+        shift
+        pre_opts="${pre_opts} $1"
+        shift
+        pre_opts="${pre_opts} $1"
+        shift
+        ;;
+      --*)
+        pre_opts="${pre_opts} $1"
+        shift
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  # Shorten the command to just the basename
+  if [ "$(basename "$0")" = "bww" ]; then
+    if [ -z "$1" ]; then
+      printf -- "Must specify a command\\n"
+      return 1
+    fi
+    bw_command="$1"
+    short_command="$(basename "$1")"
+  else
+    short_command="$(basename "$0")"
+    bw_command="${short_command}"
+  fi
+  # eat argument
+  shift
+
+  if ! command -v "${bw_command}" > /dev/null 2>&1; then
+    printf -- "Invalid command: %s\\n" "${bw_command}"
+    return 1
+  fi
+
+  # If the user wants access to devices, we can't make read only
+  if has_option "dev"; then
+    __bw_opts="${__bw_opts} --ro-bind / /"
+  else
+    __bw_opts="${__bw_opts} --dev-bind / /"
+  fi
+
+  # If we fake dev, mount fake dev stuff
+  if has_option "dev"; then
+    __bw_opts="${__bw_opts} --dev /dev"
+    __bw_opts="${__bw_opts} --mqueue /dev/mqueue"
+  fi
+
+  jail_name=""
+  if [ -n "${force_jail_name}" ]; then
+    jail_name="${force_jail_name}"
+  else
+    jail_name="${short_command}"
+  fi
+
+  jail=${HOME}/.jails/${jail_name}
+  make_jail "${jail}" "${bw_command}" || return 1
+  __bw_opts="${__bw_opts} --bind ${jail}/home ${HOME}"
+
+  # Read only binds
+  robind_if_exists "/usr"
+  robind_if_exists "/usr/bin"
+  robind_if_exists "/usr/sbin"
+  robind_if_exists "/usr/lib"
+  robind_if_exists "/usr/lib32"
+  robind_if_exists "/usr/lib64"
+  robind_if_exists "/usr/share"
+  robind_if_exists "/usr/include"
+  robind_if_exists "/etc"
+  robind_if_exists "/etc/resolv.conf"
+
+  # Blacklist
+  __bw_opts="${__bw_opts} --tmpfs /boot"
+  __bw_opts="${__bw_opts} --tmpfs /usr/lib/modules"
+  __bw_opts="${__bw_opts} --tmpfs /usr/lib/modules-load.d"
+  __bw_opts="${__bw_opts} --tmpfs /usr/lib/modprobe.d"
+  __bw_opts="${__bw_opts} --tmpfs /usr/lib/sysctl.d"
+  __bw_opts="${__bw_opts} --tmpfs /usr/lib/systemd"
+  __bw_opts="${__bw_opts} --tmpfs /etc/modules-load.d"
+  __bw_opts="${__bw_opts} --tmpfs /etc/modprobe.d"
+  __bw_opts="${__bw_opts} --tmpfs /etc/sysctl.d"
+  __bw_opts="${__bw_opts} --tmpfs /etc/systemd"
+
+  # Always run
+  __bw_opts="${__bw_opts} --tmpfs /tmp"
+  __bw_opts="${__bw_opts} --proc /proc"
+  __bw_opts="${__bw_opts} --die-with-parent"
+
+  # Bind var
+  robind_if_exists "/var"
+  __bw_opts="${__bw_opts} --bind ${jail}/var/tmp /var/tmp"
+  __bw_opts="${__bw_opts} --tmpfs /var/run"
+
+  # tmpfs run
+  __bw_opts="${__bw_opts} --tmpfs /run"
+  __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)"
+
+  # For PulseAudio
+  if has_option "audio"; then
+    robind_if_exists "${HOME}/.config/pulse"
+    robind_if_exists "/run/user/$(id -u)/pulse"
+  fi
+
+  if has_option "user"; then
+    __bw_opts="${__bw_opts} --unshare-user-try"
+  fi
+
+  if has_option "ipc"; then
+    __bw_opts="${__bw_opts} --unshare-ipc"
+  fi
+
+  if has_option "pid"; then
+    __bw_opts="${__bw_opts} --unshare-pid"
+  fi
+
+  if has_option "uts"; then
+    __bw_opts="${__bw_opts} --unshare-uts"
+  fi
+
+  if has_option "cgroup"; then
+    __bw_opts="${__bw_opts} --unshare-cgroup-try"
+  fi
+
+  if has_option "session"; then
+    __bw_opts="${__bw_opts} --new-session"
+  fi
+
+  if has_option "drop"; then
+    __bw_opts="${__bw_opts} --cap-drop ALL"
+  fi
+
+  # Bind X11 socket
+  if has_option "x11"; then
+    robind_if_exists "/tmp/.X11-unix/X0"
+  fi
+
+  # If we have a dbus entry in the user run dir
+  if has_option "dbus"; then
+    bind_if_exists "/run/user/$(id -u)/bus"
+    bind_if_exists "/run/dbus"
+  fi
+
+  # Any program which relies on dconf
+  if ! has_option "nodconf"; then
+    bind_if_exists "/run/user/$(id -u)/dconf"
+    robind_if_exists "${HOME}/.config/dconf"
+  fi
+
+  # Any theme related dirs
+  if has_option "themes"; then
+    robind_if_exists "${HOME}/.config/Trolltech.conf"
+    robind_if_exists "${HOME}/.gtkrc"
+    robind_if_exists "${HOME}/.gtkrc-2.0"
+    robind_if_exists "${HOME}/.config/gtk-2.0"
+    robind_if_exists "${HOME}/.config/gtk-3.0"
+    robind_if_exists "${HOME}/.fonts"
+  fi
+
+  # Bind the mesa caches so they are not re-created for each jail
+  if has_option "gl"; then
+    if has_option "dev"; then
+      devbind_if_exists "/dev/dri"
+    fi
+    mkdir -p "${HOME}/.cache/mesa" || {
+      printf -- 'Failed prepping mesa cache directory\n'
+      return 1
+    }
+    bind_if_exists "${HOME}/.cache/mesa"
+
+    mkdir -p "${HOME}/.cache/mesa_shader_cache" || {
+      printf -- 'Failed prepping mesa_shader_cache cache directory\n'
+      return 1
+    }
+    bind_if_exists "${HOME}/.cache/mesa_shader_cache"
+  fi
+
+  # Extra binds
+  for binding in ${binds}; do
+    bind_if_exists "${binding}"
+  done
+  for robinding in ${robinds}; do
+    robind_if_exists "${robinding}"
+  done
+  unset binds
+
+  printf -- "Run /usr/bin/brwap: %s %s %s %s\\n" "${__bw_opts}" "${pre_opts}" \
+    "${bw_command}" "$*"
+
+  # shellcheck disable=SC2086
+  ${__bwrap} ${__bw_opts} ${pre_opts} "${bw_command}" "$@"
+
+  unset __bw_opts
+  unset __bwrap
+  unset __ignore_opts
+  unset pre_opts
+  unset short_command
+  unset bw_command
+  return 0
+}
+
+__bwrap="/usr/bin/bwrap"
+__bw_opts=""
+
+# Kernel does not support user namespaces yet
+# isolated ipc currently causes lots of black box menus
+__ignore_opts="user ipc"
+
+main "$@" || exit 1
+exit 0
