@@ -21,6 +21,17 @@
 # bubblewrap-wrap
 
 ##
+# Split a long option with embedded equals (=) and return the argument
+# $1 option name
+# $2 argument
+split_equal_get_arg()
+{
+  prefix="$1="
+  full_arg="$2"
+  printf -- '%s' "${full_arg#${prefix}}"
+}
+
+##
 # Bind if exists
 # $1 - path
 bind_if_exists()
@@ -108,90 +119,90 @@ main()
   robinds=""
   while :; do
     case "$1" in
-      "--nodev")
+      --nodev)
         __ignore_opts="${__ignore_opts} dev"
         shift
         ;;
-      "--noaudio")
+      --noaudio)
         __ignore_opts="${__ignore_opts} audio"
         shift
         ;;
-      "--nouser")
+      --nouser)
         __ignore_opts="${__ignore_opts} user"
         shift
         ;;
-      "--noipc")
+      --noipc)
         __ignore_opts="${__ignore_opts} ipc"
         shift
         ;;
-      "--nopid")
+      --nopid)
         __ignore_opts="${__ignore_opts} pid"
         shift
         ;;
-      "--nouts")
+      --nouts)
         __ignore_opts="${__ignore_opts} uts"
         shift
         ;;
-      "--nocgroup")
+      --nocgroup)
         __ignore_opts="${__ignore_opts} cgroup"
         shift
         ;;
-      "--nosession")
+      --nosession)
         __ignore_opts="${__ignore_opts} session"
         shift
         ;;
-      "--nodrop")
+      --nodrop)
         __ignore_opts="${__ignore_opts} drop"
         shift
         ;;
-      "--nox11")
+      --nox11)
         __ignore_opts="${__ignore_opts} x11"
         shift
         ;;
-      "--nodbus")
+      --nodbus)
         __ignore_opts="${__ignore_opts} dbus"
         shift
         ;;
-      "--nogl")
+      --nogl)
         __ignore_opts="${__ignore_opts} gl"
         shift
         ;;
-      "--nothemes")
+      --nothemes)
         __ignore_opts="${__ignore_opts} themes"
         shift
         ;;
-      "--dconf")
+      --dconf)
         __ignore_opts="${__ignore_opts} nodconf"
         shift
         ;;
-      "--bind-if-exists")
+      --bind-if-exists)
         # Eat argument
         shift
         # Add to list
         binds="$1 ${binds}"
         shift
         ;;
-      "--robind-if-exists")
+      --robind-if-exists)
         # Eat argument
         shift
         # Add to list
         robinds="$1 ${robinds}"
         shift
         ;;
-      "--forcename")
+      --forcename)
         # --forcename should have 1 argument, shift 1 more time
         shift
         force_jail_name="$1"
         shift
         ;;
-      "--cap-add"|"--cap-drop"|"--tmpfs")
+      --cap-add|--cap-drop|--tmpfs)
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
         shift
         pre_opts="${pre_opts} $1"
         shift
         ;;
-      "--setenv"|"--bind"|"--ro-bind")
+      --setenv|--bind|--ro-bind)
         # should have 2 arguments, shift 2 more times
         pre_opts="${pre_opts} $1"
         shift
