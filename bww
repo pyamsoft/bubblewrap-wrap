@@ -419,15 +419,7 @@ main()
     "${bw_command}" "$*"
 
   # shellcheck disable=SC2086
-  ${__bwrap} ${__bw_opts} ${pre_opts} "${bw_command}" "$@"
-
-  unset __bw_opts
-  unset __bwrap
-  unset __ignore_opts
-  unset pre_opts
-  unset short_command
-  unset bw_command
-  return 0
+  exec ${__bwrap} ${__bw_opts} ${pre_opts} "${bw_command}" "$@"
 }
 
 __bwrap="/usr/bin/bwrap"
