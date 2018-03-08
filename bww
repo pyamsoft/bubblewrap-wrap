@@ -182,11 +182,19 @@ main()
         binds="$1 ${binds}"
         shift
         ;;
+      --bind-if-exists=*)
+        binds="$(split_equal_get_arg '--bind-if-exists' "$1") ${binds}"
+        shift
+        ;;
       --robind-if-exists)
         # Eat argument
         shift
         # Add to list
         robinds="$1 ${robinds}"
+        shift
+        ;;
+      --robind-if-exists=*)
+        binds="$(split_equal_get_arg '--robind-if-exists' "$1") ${binds}"
         shift
         ;;
       --forcename)
@@ -195,11 +203,27 @@ main()
         force_jail_name="$1"
         shift
         ;;
+      --forcename=*)
+        binds="$(split_equal_get_arg '--forcename' "$1") ${binds}"
+        shift
+        ;;
       --cap-add|--cap-drop|--tmpfs)
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
         shift
         pre_opts="${pre_opts} $1"
+        shift
+        ;;
+      --cap-add=*)
+        pre_opts="${pre_opts} --cap-add $(split_equal_get_arg '--cap-add' "$1")"
+        shift
+        ;;
+      --cap-drop=*)
+        pre_opts="${pre_opts} --cap-drop $(split_equal_get_arg '--cap-drop' "$1")"
+        shift
+        ;;
+      --tmpfs=*)
+        pre_opts="${pre_opts} --tmpfs $(split_equal_get_arg '--tmpfs' "$1")"
         shift
         ;;
       --setenv|--bind|--ro-bind)
