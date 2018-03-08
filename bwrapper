@@ -34,14 +34,19 @@ main()
   pre_opts=""
   while :; do
     case "$1" in
-      "--cap-add"|"--cap-drop"|"--forcename"|"--bind-if-exists")
+      --cap-add=*|--cap-drop=*|--forcename=*|--bind-if-exists=*)
+        # Eat option
+        pre_opts="${pre_opts} $1"
+        shift
+        ;;
+      --cap-add|--cap-drop|--forcename|--bind-if-exists)
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
         shift
         pre_opts="${pre_opts} $1"
         shift
         ;;
-      "--setenv"|"--bind"|"--ro-bind")
+      --setenv|--bind|--ro-bind)
         # should have 2 arguments, shift 2 more times
         pre_opts="${pre_opts} $1"
         shift
