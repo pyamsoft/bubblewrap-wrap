@@ -22,55 +22,52 @@
 
 __PROGRAM_NAME="$(basename "$0")"
 
+print_usage()
+{
+  printf -- '%s: <program> [argument-string]\n' "${__PROGRAM_NAME}"
+  printf -- '\n'
+  printf -- '    argument-string can be any normal command line arguments you\n'
+  printf -- '    pass if you were calling bww from the command line.\n'
+  printf -- '    The first occurrence of %s will be replaced by the\n' "%cmd"
+  printf -- '    program name.\n'
+  return 0
+}
+
 main()
 {
-  if [ -z "$1" ]; then
+  command_name="$1"
+  shift
+
+  if [ -z "${command_name}" ]; then
     printf -- 'Must specify a command\n'
+    print_usage
     return 1
   fi
 
   # Loop and consume arguments until we can't anymore
 
-  pre_opts=""
-  while :; do
-    case "$1" in
-      --cap-add=*|--cap-drop=*|--forcename=*|--bind-if-exists=*)
-        # Eat option
-        pre_opts="${pre_opts} $1"
-        shift
-        ;;
-      --cap-add|--cap-drop|--forcename|--bind-if-exists)
-        # should have 1 arguments, shift 1 more times
-        pre_opts="${pre_opts} $1"
-        shift
-        pre_opts="${pre_opts} $1"
-        shift
-        ;;
-      --setenv|--bind|--ro-bind)
-        # should have 2 arguments, shift 2 more times
-        pre_opts="${pre_opts} $1"
-        shift
-        pre_opts="${pre_opts} $1"
-        shift
-        pre_opts="${pre_opts} $1"
-        shift
-        ;;
-      --*)
-        pre_opts="${pre_opts} $1"
-        shift
-        ;;
-      *)
-        break
-        ;;
-    esac
-  done
-
-  if ! command -v "$1" > /dev/null 2>&1; then
-    printf -- 'Invalid command: %s\n' "$1"
+  if ! command -v "${command_name}" > /dev/null 2>&1; then
+    printf -- 'Invalid command: %s\n' "${command_name}"
     return 1
   fi
 
-  command_name="$(basename "$1")"
+  if [ -n "$*" ]; then
+    found_command=0
+    for cmd in "$@"; do
+      if [ "${cmd}" = "%cmd" ]; then
+        found_command=1
+        break
+      fi
+    done
+
+    if [ "${found_command}" -eq 0 ]; then
+      printf -- 'Must specify command somewhere in the arguments\n'
+      print_usage
+      return 1
+    fi
+  else
+    set -- "${command_name}"
+  fi
 
   target_dir="${HOME}/bin"
   if [ ! -d "${target_dir}" ]; then
@@ -95,8 +92,10 @@ main()
 # This script expects the 'bww' script to be available to the user somewhere
 # on the \$PATH. It will fail if the situation proves otherwise.
 
-exec bww ${pre_opts} $* "\$@"
+exec bww $@ "\$@"
 EOF
+
+  sed -i "s/%cmd/${command_name}/" "${target_file}"
 
   printf -- 'Mark %s as executable...\n' "${target_file}"
   chmod 700 "${target_file}" || return 1
