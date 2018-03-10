@@ -204,7 +204,7 @@ main()
         shift
         ;;
       --forcename=*)
-        binds="$(split_equal_get_arg '--forcename' "$1") ${binds}"
+        force_jail_name="$(split_equal_get_arg '--forcename' "$1")"
         shift
         ;;
       --cap-add|--cap-drop|--tmpfs)
