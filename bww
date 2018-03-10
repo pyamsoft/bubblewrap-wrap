@@ -414,12 +414,19 @@ main()
     robind_if_exists "${robinding}"
   done
   unset binds
+  unset robinds
 
   printf -- "Run /usr/bin/brwap: %s %s %s %s\\n" "${__bw_opts}" "${pre_opts}" \
     "${bw_command}" "$*"
 
   # shellcheck disable=SC2086
-  exec ${__bwrap} ${__bw_opts} ${pre_opts} "${bw_command}" "$@"
+  ${__bwrap} ${__bw_opts} ${pre_opts} "${bw_command}" "$@" || return 1
+
+  unset __bwrap
+  unset __bw_opts
+  unset pre_opts
+  unset bw_command
+  return 0
 }
 
 __bwrap="/usr/bin/bwrap"
