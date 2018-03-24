@@ -318,14 +318,14 @@ main()
   __bw_opts="${__bw_opts} --proc /proc"
   __bw_opts="${__bw_opts} --die-with-parent"
 
+  # tmpfs run
+  __bw_opts="${__bw_opts} --tmpfs /run"
+  __bw_opts="${__bw_opts} --tmpfs /run/lock"
+  __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)"
+
   # Bind var
   robind_if_exists "/var"
   __bw_opts="${__bw_opts} --bind ${jail}/var/tmp /var/tmp"
-  __bw_opts="${__bw_opts} --tmpfs /var/run"
-
-  # tmpfs run
-  __bw_opts="${__bw_opts} --tmpfs /run"
-  __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)"
 
   # For PulseAudio
   if has_option "audio"; then
