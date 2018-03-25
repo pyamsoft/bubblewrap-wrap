@@ -404,6 +404,9 @@ main()
       return 1
     }
     bind_if_exists "${HOME}/.cache/mesa_shader_cache"
+
+    # Bind drirc if it exists as read-only
+    robind_if_exists "${HOME}/.drirc"
   fi
 
   # Extra binds
