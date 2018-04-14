@@ -369,7 +369,9 @@ main()
   # If we have a dbus entry in the user run dir
   if has_option "dbus"; then
     bind_if_exists "/run/user/$(id -u)/bus"
+    bind_if_exists "/run/user/$(id -u)/dbus-1"
     bind_if_exists "/run/dbus"
+    bind_if_exists "${HOME}/.dbus"
   fi
 
   # Any program which relies on dconf
