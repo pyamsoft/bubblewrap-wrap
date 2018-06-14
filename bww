@@ -382,6 +382,8 @@ main()
 
   # Any theme related dirs
   if has_option "themes"; then
+    robind_if_exists "${HOME}/.config/user-dirs.dirs"
+    robind_if_exists "${HOME}/.config/user-dirs.locale"
     robind_if_exists "${HOME}/.config/Trolltech.conf"
     robind_if_exists "${HOME}/.gtkrc"
     robind_if_exists "${HOME}/.gtkrc-2.0"
