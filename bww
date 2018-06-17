@@ -363,7 +363,11 @@ main()
 
   # Bind X11 socket
   if has_option "x11"; then
+    # Launch the X server
     robind_if_exists "/tmp/.X11-unix/X0"
+
+    # Authorize clients to connect to Xserver
+    robind_if_exists "${HOME}/.Xauthority"
   fi
 
   # If we have a dbus entry in the user run dir
