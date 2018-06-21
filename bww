@@ -394,6 +394,8 @@ main()
     robind_if_exists "${HOME}/.config/gtk-2.0"
     robind_if_exists "${HOME}/.config/gtk-3.0"
     robind_if_exists "${HOME}/.fonts"
+    robind_if_exists "${HOME}/.fonts.conf"
+    robind_if_exists "${HOME}/.config/fontconfig"
   fi
 
   # Bind the mesa caches so they are not re-created for each jail
