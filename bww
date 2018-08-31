@@ -36,7 +36,7 @@ split_equal_get_arg()
 # $1 - path
 bind_if_exists()
 {
-  if [ -e "$1" ]; then
+  if [ -e "$1" ] && [ -r "$1" ]; then
     __bw_opts="${__bw_opts} --bind $1 $1"
   fi
 }
@@ -46,7 +46,7 @@ bind_if_exists()
 # $1 - path
 robind_if_exists()
 {
-  if [ -e "$1" ]; then
+  if [ -e "$1" ] && [ -r "$1" ]; then
     __bw_opts="${__bw_opts} --ro-bind $1 $1"
   fi
 }
