@@ -36,7 +36,7 @@ split_equal_get_arg()
 # $1 - path
 bind_if_exists()
 {
-  if [ -e "$1" ] && [ -r "$1" ]; then
+  if { [ -f "$1" ] || [ -d "$1" ]; } && [ -r "$1" ] && [ -s "$1" ] && [ ! -L "$1" ]; then
     __bw_opts="${__bw_opts} --bind $1 $1"
   fi
 }
@@ -46,7 +46,7 @@ bind_if_exists()
 # $1 - path
 robind_if_exists()
 {
-  if [ -e "$1" ] && [ -r "$1" ]; then
+  if { [ -f "$1" ] || [ -d "$1" ]; } && [ -r "$1" ] && [ -s "$1" ] && [ ! -L "$1" ]; then
     __bw_opts="${__bw_opts} --ro-bind $1 $1"
   fi
 }
@@ -69,19 +69,19 @@ make_jail()
 {
   # Make the jail directory
   mkdir -p "$1" || {
-    printf -- "Unable to prepare jail root directory for: %s\\n" "$2"
+    printf -- 'Unable to prepare jail root directory for: %s\n' "$2"
     return 1
   }
 
   # Make jail home
   mkdir -p "$1/home" || {
-    printf -- "Unable to prepare jail home directory for: %s\\n" "$2"
+    printf -- 'Unable to prepare jail home directory for: %s\n' "$2"
     return 1
   }
 
   # Make jail var/tmp
   mkdir -p "$1/var/tmp" || {
-    printf -- "Unable to prepare jail var/tmp directory for: %s\\n" "$2"
+    printf -- 'Unable to prepare jail var/tmp directory for: %s\n' "$2"
     return 1
   }
 
@@ -107,7 +107,7 @@ has_option()
 main()
 {
   if ! command -v "${__bwrap}" > /dev/null 2>&1; then
-    printf -- "bwrap is not installed.\\n"
+    printf -- 'bwrap is not installed.\n'
     return 1
   fi
 
@@ -253,7 +253,7 @@ main()
   # Shorten the command to just the basename
   if [ "$(basename "$0")" = "bww" ]; then
     if [ -z "$1" ]; then
-      printf -- "Must specify a command\\n"
+      printf -- 'Must specify a command\n'
       return 1
     fi
     bw_command="$1"
@@ -266,7 +266,7 @@ main()
   shift
 
   if ! command -v "${bw_command}" > /dev/null 2>&1; then
-    printf -- "Invalid command: %s\\n" "${bw_command}"
+    printf -- 'Invalid command: %s\n' "${bw_command}"
     return 1
   fi
 
@@ -304,7 +304,19 @@ main()
   robind_if_exists "/usr/share"
   robind_if_exists "/usr/include"
   robind_if_exists "/etc"
+  robind_if_exists "/etc/fonts"
+  robind_if_exists "/etc/group"
+  robind_if_exists "/etc/gtk-2.0"
+  robind_if_exists "/etc/gtk-3.0"
+  robind_if_exists "/etc/hostname"
+  robind_if_exists "/etc/hosts"
+  robind_if_exists "/etc/localtime"
+  robind_if_exists "/etc/mime.types"
+  robind_if_exists "/etc/nsswitch.conf"
+  robind_if_exists "/etc/passwd"
   robind_if_exists "/etc/resolv.conf"
+  robind_if_exists "/etc/xdg"
+  robind_if_exists "/etc/X11"
 
   # Blacklist
   __bw_opts="${__bw_opts} --tmpfs /boot"
@@ -436,14 +448,14 @@ main()
 
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
-    printf -- "Run /usr/bin/brwap: %s %s %s %s\\n" "${__bw_opts}" "${pre_opts}" \
+    printf -- 'Run /usr/bin/brwap: %s %s %s %s\n' "${__bw_opts}" "${pre_opts}" \
       "${bw_command}" "$*"
 
     # shellcheck disable=SC2086
     ${__bwrap} ${__bw_opts} ${pre_opts} "${bw_command}" "$@" || return 1
   else
-    # Launch bash into the program's jailk
-    printf -- "Run /usr/bin/brwap: %s %s /usr/bin/env bash\\n" \
+    # Launch bash into the program's jail
+    printf -- 'Run /usr/bin/brwap: %s %s /usr/bin/env bash\n' \
       "${__bw_opts}" "${pre_opts}"
 
     # shellcheck disable=SC2086
