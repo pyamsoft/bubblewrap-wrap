@@ -420,11 +420,6 @@ main()
     if has_option "dev"; then
       devbind_if_exists "/dev/dri"
     fi
-    mkdir -p "${HOME}/.cache/mesa" || {
-      printf -- 'Failed prepping mesa cache directory\n'
-      return 1
-    }
-    bind_if_exists "${HOME}/.cache/mesa"
 
     mkdir -p "${HOME}/.cache/mesa_shader_cache" || {
       printf -- 'Failed prepping mesa_shader_cache cache directory\n'
