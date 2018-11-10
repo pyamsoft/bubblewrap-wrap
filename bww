@@ -155,6 +155,7 @@ main()
   pre_opts=""
   binds=""
   robinds=""
+  run_opts=""
   while :; do
     case "$1" in
       --help)
@@ -163,58 +164,86 @@ main()
         ;;
       --nodev)
         __ignore_opts="${__ignore_opts} dev"
+        run_opts="${run_opts}
+--nodev"
         shift
         ;;
       --noaudio)
         __ignore_opts="${__ignore_opts} audio"
+        run_opts="${run_opts}
+--noaudio"
         shift
         ;;
       --nouser)
         __ignore_opts="${__ignore_opts} user"
+        run_opts="${run_opts}
+--noaudio"
         shift
         ;;
       --noipc)
         __ignore_opts="${__ignore_opts} ipc"
+        run_opts="${run_opts}
+--noipc"
         shift
         ;;
       --nopid)
         __ignore_opts="${__ignore_opts} pid"
+        run_opts="${run_opts}
+--nopid"
         shift
         ;;
       --nouts)
         __ignore_opts="${__ignore_opts} uts"
+        run_opts="${run_opts}
+--nouts"
         shift
         ;;
       --nocgroup)
         __ignore_opts="${__ignore_opts} cgroup"
+        run_opts="${run_opts}
+--nocgroup"
         shift
         ;;
       --nosession)
         __ignore_opts="${__ignore_opts} session"
+        run_opts="${run_opts}
+--nosession"
         shift
         ;;
       --nodrop)
         __ignore_opts="${__ignore_opts} drop"
+        run_opts="${run_opts}
+--nodrop"
         shift
         ;;
       --nox11)
         __ignore_opts="${__ignore_opts} x11"
+        run_opts="${run_opts}
+--nox11"
         shift
         ;;
       --nodbus)
         __ignore_opts="${__ignore_opts} dbus"
+        run_opts="${run_opts}
+--nodbus"
         shift
         ;;
       --nogl)
         __ignore_opts="${__ignore_opts} gl"
+        run_opts="${run_opts}
+--nogl"
         shift
         ;;
       --nothemes)
         __ignore_opts="${__ignore_opts} themes"
+        run_opts="${run_opts}
+--nothemes"
         shift
         ;;
       --dconf)
         __ignore_opts="${__ignore_opts} nodconf"
+        run_opts="${run_opts}
+--dconf"
         shift
         ;;
       --bind-if-exists)
@@ -222,10 +251,16 @@ main()
         shift
         # Add to list
         binds="$1 ${binds}"
+        run_opts="${run_opts}
+--bind-if-exists $1"
         shift
         ;;
       --bind-if-exists=*)
-        binds="$(split_equal_get_arg '--bind-if-exists' "$1") ${binds}"
+        split_arg="$(split_equal_get_arg '--bind-if-exists' "$1")"
+        binds="${split_arg} ${binds}"
+        run_opts="${run_opts}
+--bind-if-exists=${split_arg}"
+        unset split_arg
         shift
         ;;
       --robind-if-exists)
@@ -233,56 +268,91 @@ main()
         shift
         # Add to list
         robinds="$1 ${robinds}"
+        run_opts="${run_opts}
+--robind-if-exists $1"
         shift
         ;;
       --robind-if-exists=*)
-        binds="$(split_equal_get_arg '--robind-if-exists' "$1") ${binds}"
+        split_arg="$(split_equal_get_arg '--robind-if-exists' "$1")"
+        robinds="${split_arg} ${robinds}"
+        run_opts="${run_opts}
+--robind-if-exists=${split_arg}"
+        unset split_arg
         shift
         ;;
       --forcename)
         # --forcename should have 1 argument, shift 1 more time
         shift
         force_jail_name="$1"
+        run_opts="${run_opts}
+--forcename $1"
         shift
         ;;
       --forcename=*)
-        force_jail_name="$(split_equal_get_arg '--forcename' "$1")"
+        split_arg="$(split_equal_get_arg '--forcename' "$1")"
+        force_jail_name="${split_arg}"
+        run_opts="${run_opts}
+--forcename=${split_arg}"
+        unset split_arg
         shift
         ;;
       --cap-add|--cap-drop|--tmpfs)
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
+        run_opts="${run_opts}
+$1"
         shift
         pre_opts="${pre_opts} $1"
+        run_opts="${run_opts} $1"
         shift
         ;;
       --cap-add=*)
-        pre_opts="${pre_opts} --cap-add $(split_equal_get_arg '--cap-add' "$1")"
+        split_arg="$(split_equal_get_arg '--cap-add' "$1")"
+        pre_opts="${pre_opts} --cap-add ${split_arg}"
+        run_opts="${run_opts}
+--cap-add=${split_arg}"
+        unset split_arg
         shift
         ;;
       --cap-drop=*)
-        pre_opts="${pre_opts} --cap-drop $(split_equal_get_arg '--cap-drop' "$1")"
+        split_arg="$(split_equal_get_arg '--cap-drop' "$1")"
+        pre_opts="${pre_opts} --cap-drop ${split_arg}"
+        run_opts="${run_opts}
+--cap-drop=${split_arg}"
+        unset split_arg
         shift
         ;;
       --tmpfs=*)
-        pre_opts="${pre_opts} --tmpfs $(split_equal_get_arg '--tmpfs' "$1")"
+        split_arg="$(split_equal_get_arg '--tmpfs' "$1")"
+        pre_opts="${pre_opts} --tmpfs ${split_arg}"
+        run_opts="${run_opts}
+--tmpfs=${split_arg}"
+        unset split_arg
         shift
         ;;
       --setenv|--bind|--ro-bind)
         # should have 2 arguments, shift 2 more times
         pre_opts="${pre_opts} $1"
+        run_opts="${run_opts}
+$1"
         shift
         pre_opts="${pre_opts} $1"
+        run_opts="${run_opts} $1"
         shift
         pre_opts="${pre_opts} $1"
+        run_opts="${run_opts} $1"
         shift
         ;;
       --shell)
         launch_shell=1
+        run_opts="${run_opts}
+--shell"
         shift
         ;;
       --*)
         pre_opts="${pre_opts} $1"
+        run_opts="${run_opts}
+$1"
         shift
         ;;
       *)
@@ -482,6 +552,10 @@ main()
   unset binds
   unset robinds
 
+  if [ -n "${run_opts}" ]; then
+    printf -- 'bww with options: %s\n\n' "${run_opts}"
+  fi
+
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
     printf -- 'Run brwap: %s %s %s %s\n' "${__bw_opts}" "${pre_opts}" \
@@ -499,6 +573,7 @@ main()
   fi
 
   unset __bw_opts
+  unset run_opts
   unset pre_opts
   unset bw_command
   return 0
