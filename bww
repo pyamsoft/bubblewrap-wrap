@@ -56,7 +56,7 @@ robind_if_exists()
 # $1 - path
 devbind_if_exists()
 {
-  if [ -e "$1" ]; then
+  if [ -e "$1" ] && [ -r "$1" ] && [ ! -L "$1" ]; then
     __bw_opts="${__bw_opts} --dev-bind $1 $1"
   fi
 }
