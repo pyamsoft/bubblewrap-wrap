@@ -177,7 +177,7 @@ main()
       --nouser)
         __ignore_opts="${__ignore_opts} user"
         run_opts="${run_opts}
---noaudio"
+--nouser"
         shift
         ;;
       --noipc)
