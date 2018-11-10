@@ -24,12 +24,17 @@ __PROGRAM_NAME="$(basename "$0")"
 
 print_usage()
 {
-  printf -- '%s: <program> [argument-string]\n' "${__PROGRAM_NAME}"
-  printf -- '\n'
-  printf -- '    argument-string can be any normal command line arguments you\n'
-  printf -- '    pass if you were calling bww from the command line.\n'
-  printf -- '    The first occurrence of %s will be replaced by the\n' "%cmd"
-  printf -- '    program name.\n'
+  printf -- '%s\n\n' "$(cat << EOF
+usage: ${__PROGRAM_NAME} <program> [argument-string]
+
+  argument-string can be any normal command line arguments you
+  pass if you were calling bww from the command line.
+  The first occurrence of %s will be replaced by the "%cmd"
+  program name.
+
+EOF
+)"
+  bww --help || return 1
   return 0
 }
 
@@ -39,15 +44,21 @@ main()
   shift
 
   if [ -z "${command_name}" ]; then
-    printf -- 'Must specify a command\n'
-    print_usage
+    printf -- 'Must specify a command\n\n'
+    print_usage || return 1
     return 1
+  fi
+
+  if [ "${command_name}" = "--help" ]; then
+    print_usage || return 1
+    return 0
   fi
 
   # Loop and consume arguments until we can't anymore
 
   if ! command -v "${command_name}" > /dev/null 2>&1; then
-    printf -- 'Invalid command: %s\n' "${command_name}"
+    printf -- 'Invalid command: %s\n\n' "${command_name}"
+    print_usage || return 1
     return 1
   fi
 
@@ -61,8 +72,8 @@ main()
     done
 
     if [ "${found_command}" -eq 0 ]; then
-      printf -- 'Must specify command somewhere in the arguments\n'
-      print_usage
+      printf -- 'Must specify command somewhere in the arguments\n\n'
+      print_usage || return 1
       return 1
     fi
   else

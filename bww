@@ -106,7 +106,7 @@ has_option()
 
 usage()
 {
-  printf -- '%s\n' "$(cat << EOF
+  printf -- '%s\n\n' "$(cat << EOF
 usage: bww [options] <program> [program-arguments]
 
   --help                    Display this help
