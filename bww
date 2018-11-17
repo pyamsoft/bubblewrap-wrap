@@ -365,6 +365,7 @@ $1"
   if [ "$(basename "$0")" = "bww" ]; then
     if [ -z "$1" ]; then
       printf -- 'Must specify a command\n'
+      usage || return 1
       return 1
     fi
     bw_command="$1"
@@ -378,6 +379,7 @@ $1"
 
   if ! command -v "${bw_command}" > /dev/null 2>&1; then
     printf -- 'Invalid command: %s\n' "${bw_command}"
+    usage || return 1
     return 1
   fi
 
