@@ -431,15 +431,21 @@ $1"
 
   # Blacklist
   __bw_opts="${__bw_opts} --tmpfs /boot"
-  __bw_opts="${__bw_opts} --tmpfs /usr/lib/modules"
   __bw_opts="${__bw_opts} --tmpfs /usr/lib/modules-load.d"
-  __bw_opts="${__bw_opts} --tmpfs /usr/lib/modprobe.d"
   __bw_opts="${__bw_opts} --tmpfs /usr/lib/sysctl.d"
   __bw_opts="${__bw_opts} --tmpfs /usr/lib/systemd"
   __bw_opts="${__bw_opts} --tmpfs /etc/modules-load.d"
   __bw_opts="${__bw_opts} --tmpfs /etc/modprobe.d"
   __bw_opts="${__bw_opts} --tmpfs /etc/sysctl.d"
   __bw_opts="${__bw_opts} --tmpfs /etc/systemd"
+
+  # Not on every system (Debian for example)
+  if [ -d /usr/lib/modules ]; then
+    __bw_opts="${__bw_opts} --tmpfs /usr/lib/modules"
+  fi
+  if [ -d /usr/lib/modprobe.d ]; then
+    __bw_opts="${__bw_opts} --tmpfs /usr/lib/modprobe.d"
+  fi
 
   # Always run
   __bw_opts="${__bw_opts} --tmpfs /tmp"
