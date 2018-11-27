@@ -36,8 +36,22 @@ split_equal_get_arg()
 # $1 - path
 bind_if_exists()
 {
-  if [ -e "$1" ] && [ -r "$1" ] && [ ! -L "$1" ]; then
+  if [ -e "$1" ]; then
+    # If its a symlink, bind the real file too
+    if [ -L "$1" ]; then
+      real_path="$(realpath "$1")"
+      if [ -e "${real_path}" ]; then
+        __bw_opts="${__bw_opts} --bind ${real_path} ${real_path}"
+      else
+        printf -- 'W: Unable to bind symlink %s, real path %s does not exist\n' \
+          "$1" "${real_path}"
+      fi
+    fi
+
+    # Always bind requested
     __bw_opts="${__bw_opts} --bind $1 $1"
+  else
+    printf -- 'W: Unable to bind %s, path does not exist\n' "$1"
   fi
 }
 
@@ -46,8 +60,22 @@ bind_if_exists()
 # $1 - path
 robind_if_exists()
 {
-  if [ -e "$1" ] && [ -r "$1" ] && [ ! -L "$1" ]; then
+  if [ -e "$1" ]; then
+    # If its a symlink, ro-bind the real file too
+    if [ -L "$1" ]; then
+      real_path="$(realpath "$1")"
+      if [ -e "${real_path}" ]; then
+        __bw_opts="${__bw_opts} --ro-bind ${real_path} ${real_path}"
+      else
+        printf -- 'W: Unable to ro-bind symlink %s, real path %s does not exist\n' \
+          "$1" "${real_path}"
+      fi
+    fi
+
+    # Always ro-bind requested
     __bw_opts="${__bw_opts} --ro-bind $1 $1"
+  else
+    printf -- 'W: Unable to ro-bind %s, path does not exist\n' "$1"
   fi
 }
 
@@ -56,8 +84,22 @@ robind_if_exists()
 # $1 - path
 devbind_if_exists()
 {
-  if [ -e "$1" ] && [ -r "$1" ] && [ ! -L "$1" ]; then
+  if [ -e "$1" ]; then
+    # If its a symlink, dev-bind the real file too
+    if [ -L "$1" ]; then
+      real_path="$(realpath "$1")"
+      if [ -e "${real_path}" ]; then
+        __bw_opts="${__bw_opts} --dev-bind ${real_path} ${real_path}"
+      else
+        printf -- 'W: Unable to dev-bind symlink %s, real path %s does not exist\n' \
+          "$1" "${real_path}"
+      fi
+    fi
+
+    # Always dev-bind requested
     __bw_opts="${__bw_opts} --dev-bind $1 $1"
+  else
+    printf -- 'W: Unable to dev-bind %s, path does not exist\n' "$1"
   fi
 }
 
@@ -407,31 +449,7 @@ $1"
   make_jail "${jail}" "${bw_command}" || return 1
   __bw_opts="${__bw_opts} --bind ${jail}/home ${HOME}"
 
-  # Read only binds
-  robind_if_exists "/usr"
-  robind_if_exists "/usr/bin"
-  robind_if_exists "/usr/sbin"
-  robind_if_exists "/usr/lib"
-  robind_if_exists "/usr/lib32"
-  robind_if_exists "/usr/lib64"
-  robind_if_exists "/usr/share"
-  robind_if_exists "/usr/include"
-  robind_if_exists "/etc"
-  robind_if_exists "/etc/fonts"
-  robind_if_exists "/etc/group"
-  robind_if_exists "/etc/gtk-2.0"
-  robind_if_exists "/etc/gtk-3.0"
-  robind_if_exists "/etc/hostname"
-  robind_if_exists "/etc/hosts"
-  robind_if_exists "/etc/localtime"
-  robind_if_exists "/etc/mime.types"
-  robind_if_exists "/etc/nsswitch.conf"
-  robind_if_exists "/etc/passwd"
-  robind_if_exists "/etc/resolv.conf"
-  robind_if_exists "/etc/xdg"
-  robind_if_exists "/etc/X11"
-
-  # Blacklist
+  # Blacklist first
   __bw_opts="${__bw_opts} --tmpfs /boot"
   __bw_opts="${__bw_opts} --tmpfs /usr/lib/modules-load.d"
   __bw_opts="${__bw_opts} --tmpfs /usr/lib/sysctl.d"
@@ -564,6 +582,29 @@ $1"
   done
   unset binds
   unset robinds
+
+  # Preset read only binds
+  robind_if_exists "/usr/bin"
+  robind_if_exists "/usr/sbin"
+  robind_if_exists "/usr/lib"
+  robind_if_exists "/usr/lib32"
+  robind_if_exists "/usr/lib64"
+  robind_if_exists "/usr/share"
+  robind_if_exists "/usr/include"
+  robind_if_exists "/usr"
+  robind_if_exists "/etc/fonts"
+  robind_if_exists "/etc/group"
+  robind_if_exists "/etc/gtk-2.0"
+  robind_if_exists "/etc/gtk-3.0"
+  robind_if_exists "/etc/hostname"
+  robind_if_exists "/etc/hosts"
+  robind_if_exists "/etc/mime.types"
+  robind_if_exists "/etc/nsswitch.conf"
+  robind_if_exists "/etc/passwd"
+  robind_if_exists "/etc/resolv.conf"
+  robind_if_exists "/etc/xdg"
+  robind_if_exists "/etc/X11"
+  robind_if_exists "/etc"
 
   if [ -n "${run_opts}" ]; then
     printf -- 'bww with options: %s\n\n' "${run_opts}"
