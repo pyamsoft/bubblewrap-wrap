@@ -449,6 +449,11 @@ $1"
     __bw_opts="${__bw_opts} --tmpfs /usr/lib/modprobe.d"
   fi
 
+  # Blacklist any mass storage directories by default
+  if [ -d /storage ]; then
+    __bw_opts="${__bw_opts} --tmpfs /storage"
+  fi
+
   # Always run
   __bw_opts="${__bw_opts} --tmpfs /tmp"
   __bw_opts="${__bw_opts} --proc /proc"
