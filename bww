@@ -477,10 +477,12 @@ $1"
   __bw_opts="${__bw_opts} --proc /proc"
   __bw_opts="${__bw_opts} --die-with-parent"
 
-  # tmpfs run
+  # Block the /run directory
   __bw_opts="${__bw_opts} --tmpfs /run"
   __bw_opts="${__bw_opts} --tmpfs /run/lock"
-  __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)"
+
+  # Bind the real user directory
+  bind_if_exists "/run/user/$(id -u)"
 
   # Bind var
   robind_if_exists "/var"
@@ -489,7 +491,9 @@ $1"
   # For PulseAudio
   if has_option "audio"; then
     robind_if_exists "${HOME}/.config/pulse"
-    robind_if_exists "/run/user/$(id -u)/pulse"
+  else
+    # Block the pulse directory
+    __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)/pulse"
   fi
 
   if has_option "user"; then
@@ -531,16 +535,20 @@ $1"
 
   # If we have a dbus entry in the user run dir
   if has_option "dbus"; then
-    bind_if_exists "/run/user/$(id -u)/bus"
-    bind_if_exists "/run/user/$(id -u)/dbus-1"
     bind_if_exists "/run/dbus"
     bind_if_exists "${HOME}/.dbus"
+  else
+    # Block dbus
+    __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)/bus"
+    __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)/dbus-1"
   fi
 
   # Any program which relies on dconf
   if ! has_option "nodconf"; then
-    bind_if_exists "/run/user/$(id -u)/dconf"
     robind_if_exists "${HOME}/.config/dconf"
+  else
+    # Block dconf
+    __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)/dconf"
   fi
 
   # Any theme related dirs
