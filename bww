@@ -609,16 +609,6 @@ $1"
     robind_if_exists "${HOME}/.drirc"
   fi
 
-  # Extra binds
-  for binding in ${binds}; do
-    bind_if_exists "${binding}"
-  done
-  for robinding in ${robinds}; do
-    robind_if_exists "${robinding}"
-  done
-  unset binds
-  unset robinds
-
   # Preset read only binds
   robind_if_exists "/usr/bin"
   robind_if_exists "/usr/sbin"
@@ -638,6 +628,16 @@ $1"
   robind_if_exists "/etc/resolv.conf"
   robind_if_exists "/etc/xdg"
   robind_if_exists "/etc"
+
+  # Extra binds
+  for binding in ${binds}; do
+    bind_if_exists "${binding}"
+  done
+  for robinding in ${robinds}; do
+    robind_if_exists "${robinding}"
+  done
+  unset binds
+  unset robinds
 
   if [ -n "${run_opts}" ]; then
     printf -- 'bww with options: %s\n\n' "${run_opts}"
