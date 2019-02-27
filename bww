@@ -32,6 +32,33 @@ split_equal_get_arg()
 }
 
 ##
+# Block a target from being accessed in the jail
+#
+# If the target is a directory, it will be mounted with --tmpfs
+# $1 target
+block_in_jail()
+{
+  target="$1"
+
+  if [ -z "${target}" ]; then
+    printf -- 'W: Unable to block_in_jail, no argument\n'
+    return 1
+  fi
+
+  if [ ! -e "${target}" ]; then
+    printf -- 'Unable to block target: %s, does not exist.\n' "${target}"
+    return 1
+  fi
+
+  if [ -d "${target}" ]; then
+    printf -- 'Blocking target dir %s via tmpfs\n' "${target}"
+    __bw_opts="${__bw_opts} --tmpfs ${target}"
+  else
+    printf -- 'Unable to block non-directory target: %s\n' "${target}"
+  fi
+}
+
+##
 # Bind if exists
 # $1 - path
 bind_if_exists()
@@ -450,36 +477,36 @@ $1"
   __bw_opts="${__bw_opts} --bind ${jail}/home ${HOME}"
 
   # Blacklist first
-  __bw_opts="${__bw_opts} --tmpfs /boot"
-  __bw_opts="${__bw_opts} --tmpfs /usr/lib/modules-load.d"
-  __bw_opts="${__bw_opts} --tmpfs /usr/lib/sysctl.d"
-  __bw_opts="${__bw_opts} --tmpfs /usr/lib/systemd"
-  __bw_opts="${__bw_opts} --tmpfs /etc/modules-load.d"
-  __bw_opts="${__bw_opts} --tmpfs /etc/modprobe.d"
-  __bw_opts="${__bw_opts} --tmpfs /etc/sysctl.d"
-  __bw_opts="${__bw_opts} --tmpfs /etc/systemd"
+  block_in_jail "/boot"
+  block_in_jail "/usr/lib/modules-load.d"
+  block_in_jail "/usr/lib/sysctl.d"
+  block_in_jail "/usr/lib/systemd"
+  block_in_jail "/etc/modules-load.d"
+  block_in_jail "/etc/modprobe.d"
+  block_in_jail "/etc/sysctl.d"
+  block_in_jail "/etc/systemd"
 
   # Not on every system (Debian for example)
   if [ -d /usr/lib/modules ]; then
-    __bw_opts="${__bw_opts} --tmpfs /usr/lib/modules"
+    block_in_jail "/usr/lib/modules"
   fi
   if [ -d /usr/lib/modprobe.d ]; then
-    __bw_opts="${__bw_opts} --tmpfs /usr/lib/modprobe.d"
+    block_in_jail "/usr/lib/modprobe.d"
   fi
 
   # Blacklist any mass storage directories by default
   if [ -d /storage ]; then
-    __bw_opts="${__bw_opts} --tmpfs /storage"
+    block_in_jail "/storage"
   fi
 
   # Always run
-  __bw_opts="${__bw_opts} --tmpfs /tmp"
+  block_in_jail "/tmp"
   __bw_opts="${__bw_opts} --proc /proc"
   __bw_opts="${__bw_opts} --die-with-parent"
 
   # Block the /run directory
-  __bw_opts="${__bw_opts} --tmpfs /run"
-  __bw_opts="${__bw_opts} --tmpfs /run/lock"
+  block_in_jail "/run"
+  block_in_jail "/run/lock"
 
   # Bind the real user directory
   bind_if_exists "/run/user/$(id -u)"
@@ -492,8 +519,7 @@ $1"
   if has_option "audio"; then
     robind_if_exists "${HOME}/.config/pulse"
   else
-    # Block the pulse directory
-    __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)/pulse"
+    block_in_jail "/run/user/$(id -u)/pulse"
   fi
 
   if has_option "user"; then
@@ -528,6 +554,7 @@ $1"
   if has_option "x11"; then
     # Launch the X server
     robind_if_exists "/tmp/.X11-unix/X0"
+    robind_if_exists "/etc/X11"
 
     # Authorize clients to connect to Xserver
     robind_if_exists "${HOME}/.Xauthority"
@@ -538,21 +565,21 @@ $1"
     bind_if_exists "/run/dbus"
     bind_if_exists "${HOME}/.dbus"
   else
-    # Block dbus
-    __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)/bus"
-    __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)/dbus-1"
+    block_in_jail "/run/user/$(id -u)/bus"
+    block_in_jail "/run/user/$(id -u)/dbus-1"
   fi
 
   # Any program which relies on dconf
   if ! has_option "nodconf"; then
     robind_if_exists "${HOME}/.config/dconf"
   else
-    # Block dconf
-    __bw_opts="${__bw_opts} --tmpfs /run/user/$(id -u)/dconf"
+    block_in_jail "/run/user/$(id -u)/dconf"
   fi
 
   # Any theme related dirs
   if has_option "themes"; then
+    robind_if_exists "/etc/gtk-2.0"
+    robind_if_exists "/etc/gtk-3.0"
     robind_if_exists "${HOME}/.config/user-dirs.dirs"
     robind_if_exists "${HOME}/.config/user-dirs.locale"
     robind_if_exists "${HOME}/.config/Trolltech.conf"
@@ -603,8 +630,6 @@ $1"
   robind_if_exists "/usr"
   robind_if_exists "/etc/fonts"
   robind_if_exists "/etc/group"
-  robind_if_exists "/etc/gtk-2.0"
-  robind_if_exists "/etc/gtk-3.0"
   robind_if_exists "/etc/hostname"
   robind_if_exists "/etc/hosts"
   robind_if_exists "/etc/mime.types"
@@ -612,7 +637,6 @@ $1"
   robind_if_exists "/etc/passwd"
   robind_if_exists "/etc/resolv.conf"
   robind_if_exists "/etc/xdg"
-  robind_if_exists "/etc/X11"
   robind_if_exists "/etc"
 
   if [ -n "${run_opts}" ]; then
