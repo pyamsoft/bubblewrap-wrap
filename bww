@@ -485,6 +485,9 @@ $1"
 
   jail=${HOME}/.jails/${jail_name}
   make_jail "${jail}" "${bw_command}" || return 1
+
+  # Restrict other homes
+  block_in_jail "/home"
   __bw_opts="${__bw_opts} --bind ${jail}/home ${HOME}"
 
   # Blacklist first
