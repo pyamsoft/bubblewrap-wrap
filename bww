@@ -203,7 +203,12 @@ usage: bww [options] <program> [program-arguments]
   --nodbus                  Do not bind dbus daemon socket
   --nogl                    Do not allow 3D graphics in jail
   --nothemes                Do not adopt existing desktop themes for GTK and QT
+
   --dconf                   Allow access to dconf from jail
+  --keyring                 Allow access to gnome-keyring from jail
+  --gpg                     Allow access to gnupg from jail
+  --p11                     Allow access to polkit from jail
+  --gvfs                    Allow access to GVFS from jail
 
 EOF
 )" || return 1
@@ -316,10 +321,34 @@ main()
 --nothemes"
         shift
         ;;
+      --keyring)
+        __ignore_opts="${__ignore_opts} nokeyring"
+        run_opts="${run_opts}
+--keyring"
+        shift
+        ;;
       --dconf)
         __ignore_opts="${__ignore_opts} nodconf"
         run_opts="${run_opts}
 --dconf"
+        shift
+        ;;
+      --gpg)
+        __ignore_opts="${__ignore_opts} nogpg"
+        run_opts="${run_opts}
+--gpg"
+        shift
+        ;;
+      --p11)
+        __ignore_opts="${__ignore_opts} nop11"
+        run_opts="${run_opts}
+--p11"
+        shift
+        ;;
+      --gvfs)
+        __ignore_opts="${__ignore_opts} nogvfs"
+        run_opts="${run_opts}
+--gvfs"
         shift
         ;;
       --bind-if-exists)
@@ -591,6 +620,40 @@ $1"
     block_in_jail "/run/user/$(id -u)/dconf"
   fi
 
+  # Any program which relies on gnome-keyring
+  if ! has_option "nokeyring"; then
+    robind_if_exists "${HOME}/.local/share/keyrings"
+  else
+    block_in_jail "/run/user/$(id -u)/keyring"
+  fi
+
+  # Any program which relies on gnupg
+  if ! has_option "nogpg"; then
+    robind_if_exists "${HOME}/.gnupg"
+  else
+    block_in_jail "/run/user/$(id -u)/gnupg"
+  fi
+
+  # Any program which relies on polkit and p11-kit
+  if ! has_option "nop11"; then
+    # No user polkit files that I know of
+    true
+  else
+    block_in_jail "/run/user/$(id -u)/p11-kit"
+    block_in_jail "/etc/pkcs11"
+    block_in_jail "/etc/polkit-1"
+    block_in_jail "/usr/share/polkit-1"
+    block_in_jail "/usr/lib/polkit-1"
+  fi
+
+  # Any program which relies on GVFS
+  if ! has_option "nogvfs"; then
+    robind_if_exists "${HOME}/.gvfs"
+    robind_if_exists "${HOME}/.local/share/gvfs-metadata"
+  else
+    block_in_jail "/run/user/$(id -u)/gvfs"
+  fi
+
   # Any theme related dirs
   if has_option "themes"; then
     robind_if_exists "/etc/gtk-2.0"
@@ -607,6 +670,9 @@ $1"
     robind_if_exists "${HOME}/.fonts"
     robind_if_exists "${HOME}/.fonts.conf"
     robind_if_exists "${HOME}/.config/fontconfig"
+  else
+    block_in_jail "/etc/gtk-2.0"
+    block_in_jail "/etc/gtk-3.0"
   fi
 
   # Bind the mesa caches so they are not re-created for each jail
