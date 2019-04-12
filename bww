@@ -204,6 +204,7 @@ usage: bww [options] <program> [program-arguments]
   --nogl                    Do not allow 3D graphics in jail
   --nothemes                Do not adopt existing desktop themes for GTK and QT
 
+  --systemd                 Allow access to systemd from jail
   --dconf                   Allow access to dconf from jail
   --keyring                 Allow access to gnome-keyring from jail
   --gpg                     Allow access to gnupg from jail
@@ -349,6 +350,12 @@ main()
         __ignore_opts="${__ignore_opts} nogvfs"
         run_opts="${run_opts}
 --gvfs"
+        shift
+        ;;
+      --systemd)
+        __ignore_opts="${__ignore_opts} nosystemd"
+        run_opts="${run_opts}
+--systemd"
         shift
         ;;
       --bind-if-exists)
@@ -652,6 +659,12 @@ $1"
     robind_if_exists "${HOME}/.local/share/gvfs-metadata"
   else
     block_in_jail "/run/user/$(id -u)/gvfs"
+  fi
+
+  # Any program which relies on systemd
+  if ! has_option "nosystemd"; then
+    # Bind systemd socket
+    bind_if_exists "/run/systemd"
   fi
 
   # Any theme related dirs
