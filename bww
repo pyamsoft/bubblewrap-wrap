@@ -408,7 +408,7 @@ main()
         unset split_arg
         shift
         ;;
-      --cap-add|--cap-drop|--tmpfs)
+      --tmpfs)
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
         run_opts="${run_opts}
@@ -416,22 +416,6 @@ $1"
         shift
         pre_opts="${pre_opts} $1"
         run_opts="${run_opts} $1"
-        shift
-        ;;
-      --cap-add=*)
-        split_arg="$(split_equal_get_arg "$1")"
-        pre_opts="${pre_opts} --cap-add ${split_arg}"
-        run_opts="${run_opts}
---cap-add=${split_arg}"
-        unset split_arg
-        shift
-        ;;
-      --cap-drop=*)
-        split_arg="$(split_equal_get_arg "$1")"
-        pre_opts="${pre_opts} --cap-drop ${split_arg}"
-        run_opts="${run_opts}
---cap-drop=${split_arg}"
-        unset split_arg
         shift
         ;;
       --tmpfs=*)
