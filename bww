@@ -242,120 +242,140 @@ main()
         __ignore_opts="${__ignore_opts} dev"
         run_opts="${run_opts}
 --nodev"
+        printf -- 'INFO: Not sandboxing /dev\n'
         shift
         ;;
       --notmp)
         __ignore_opts="${__ignore_opts} tmp"
         run_opts="${run_opts}
 --notmp"
+        printf -- 'INFO: Not sandboxing /tmp\n'
         shift
         ;;
       --noaudio)
         __ignore_opts="${__ignore_opts} audio"
         run_opts="${run_opts}
 --noaudio"
+        printf -- 'INFO: PulseAudio not allowed in jail\n'
         shift
         ;;
       --nouser)
         __ignore_opts="${__ignore_opts} user"
         run_opts="${run_opts}
 --nouser"
+        printf -- 'INFO: Not using user namespace\n'
         shift
         ;;
       --noipc)
         __ignore_opts="${__ignore_opts} ipc"
         run_opts="${run_opts}
 --noipc"
+        printf -- 'INFO: Not using IPC namespace\n'
         shift
         ;;
       --nopid)
         __ignore_opts="${__ignore_opts} pid"
         run_opts="${run_opts}
 --nopid"
+        printf -- 'INFO: Not using PID namespace\n'
         shift
         ;;
       --nouts)
         __ignore_opts="${__ignore_opts} uts"
         run_opts="${run_opts}
 --nouts"
+        printf -- 'INFO: Not using UTS namespace\n'
         shift
         ;;
       --nocgroup)
         __ignore_opts="${__ignore_opts} cgroup"
         run_opts="${run_opts}
 --nocgroup"
+        printf -- 'INFO: Not using CGROUP namespace\n'
         shift
         ;;
       --nosession)
         __ignore_opts="${__ignore_opts} session"
         run_opts="${run_opts}
 --nosession"
+        printf -- 'INFO: Not running in new session\n'
         shift
         ;;
       --nodrop)
         __ignore_opts="${__ignore_opts} drop"
         run_opts="${run_opts}
 --nodrop"
+        printf -- 'INFO: Not dropping capabilities\n'
         shift
         ;;
       --nox11)
         __ignore_opts="${__ignore_opts} x11"
         run_opts="${run_opts}
 --nox11"
+        printf -- 'INFO: X11 not allowed in jail\n'
         shift
         ;;
       --nodbus)
         __ignore_opts="${__ignore_opts} dbus"
         run_opts="${run_opts}
 --nodbus"
+        printf -- 'INFO: DBUS not allowed in jail\n'
         shift
         ;;
       --nogl)
         __ignore_opts="${__ignore_opts} gl"
         run_opts="${run_opts}
 --nogl"
+        printf -- 'INFO: GL|3d graphics not allowed in jail\n'
         shift
         ;;
       --nothemes)
         __ignore_opts="${__ignore_opts} themes"
         run_opts="${run_opts}
 --nothemes"
+        printf -- 'INFO: GTK/QT themes not allowed in jail\n'
         shift
         ;;
       --keyring)
         __ignore_opts="${__ignore_opts} nokeyring"
         run_opts="${run_opts}
 --keyring"
+        printf -- 'INFO: gnome-keyring allowed in jail\n'
         shift
         ;;
       --dconf)
         __ignore_opts="${__ignore_opts} nodconf"
         run_opts="${run_opts}
 --dconf"
+        printf -- 'INFO: dconf allowed in jail\n'
         shift
         ;;
       --gpg)
         __ignore_opts="${__ignore_opts} nogpg"
         run_opts="${run_opts}
 --gpg"
+        printf -- 'INFO: gnupg allowed in jail\n'
         shift
         ;;
       --p11)
         __ignore_opts="${__ignore_opts} nop11"
         run_opts="${run_opts}
 --p11"
+        printf -- 'INFO: p11-kit allowed in jail\n'
         shift
         ;;
       --gvfs)
         __ignore_opts="${__ignore_opts} nogvfs"
         run_opts="${run_opts}
 --gvfs"
+        printf -- 'INFO: GVFS allowed in jail\n'
         shift
         ;;
       --systemd)
         __ignore_opts="${__ignore_opts} nosystemd"
         run_opts="${run_opts}
 --systemd"
+        printf -- 'INFO: systemd allowed in jail\n'
         shift
         ;;
       --bind-if-exists)
