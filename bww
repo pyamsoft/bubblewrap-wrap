@@ -52,7 +52,8 @@ block_in_jail()
 
   if [ -d "${target}" ]; then
     printf -- 'Blocking target dir %s via tmpfs\n' "${target}"
-    __bw_opts="${__bw_opts} --tmpfs ${target}"
+    __bw_opts="${__bw_opts}
+  --tmpfs ${target}"
   else
     printf -- 'Unable to block non-directory target: %s\n' "${target}"
   fi
@@ -68,7 +69,8 @@ bind_if_exists()
     if [ -L "$1" ]; then
       real_path="$(realpath "$1")"
       if [ -e "${real_path}" ]; then
-        __bw_opts="${__bw_opts} --bind ${real_path} ${real_path}"
+        __bw_opts="${__bw_opts}
+  --bind ${real_path} ${real_path}"
       else
         printf -- 'W: Unable to bind symlink %s, real path %s does not exist\n' \
           "$1" "${real_path}"
@@ -76,7 +78,8 @@ bind_if_exists()
     fi
 
     # Always bind requested
-    __bw_opts="${__bw_opts} --bind $1 $1"
+    __bw_opts="${__bw_opts}
+  --bind $1 $1"
   else
     printf -- 'W: Unable to bind %s, path does not exist\n' "$1"
   fi
@@ -92,7 +95,8 @@ robind_if_exists()
     if [ -L "$1" ]; then
       real_path="$(realpath "$1")"
       if [ -e "${real_path}" ]; then
-        __bw_opts="${__bw_opts} --ro-bind ${real_path} ${real_path}"
+        __bw_opts="${__bw_opts}
+  --ro-bind ${real_path} ${real_path}"
       else
         printf -- 'W: Unable to ro-bind symlink %s, real path %s does not exist\n' \
           "$1" "${real_path}"
@@ -100,7 +104,8 @@ robind_if_exists()
     fi
 
     # Always ro-bind requested
-    __bw_opts="${__bw_opts} --ro-bind $1 $1"
+    __bw_opts="${__bw_opts}
+  --ro-bind $1 $1"
   else
     printf -- 'W: Unable to ro-bind %s, path does not exist\n' "$1"
   fi
@@ -116,7 +121,8 @@ devbind_if_exists()
     if [ -L "$1" ]; then
       real_path="$(realpath "$1")"
       if [ -e "${real_path}" ]; then
-        __bw_opts="${__bw_opts} --dev-bind ${real_path} ${real_path}"
+        __bw_opts="${__bw_opts}
+  --dev-bind ${real_path} ${real_path}"
       else
         printf -- 'W: Unable to dev-bind symlink %s, real path %s does not exist\n' \
           "$1" "${real_path}"
@@ -124,7 +130,8 @@ devbind_if_exists()
     fi
 
     # Always dev-bind requested
-    __bw_opts="${__bw_opts} --dev-bind $1 $1"
+    __bw_opts="${__bw_opts}
+  --dev-bind $1 $1"
   else
     printf -- 'W: Unable to dev-bind %s, path does not exist\n' "$1"
   fi
@@ -499,23 +506,6 @@ $1"
     return 1
   fi
 
-  # These are always set, there is no good reason for you to unset these
-  __bw_opts="${__bw_opts} --proc /proc"
-  __bw_opts="${__bw_opts} --die-with-parent"
-
-  # If the user wants access to devices, we can't make read only
-  if has_option "dev"; then
-    __bw_opts="${__bw_opts} --ro-bind / /"
-  else
-    __bw_opts="${__bw_opts} --dev-bind / /"
-  fi
-
-  # If we fake dev, mount fake dev stuff
-  if has_option "dev"; then
-    __bw_opts="${__bw_opts} --dev /dev"
-    __bw_opts="${__bw_opts} --mqueue /dev/mqueue"
-  fi
-
   jail_name=""
   if [ -n "${force_jail_name}" ]; then
     jail_name="${force_jail_name}"
@@ -523,12 +513,37 @@ $1"
     jail_name="${short_command}"
   fi
 
-  jail=${HOME}/.jails/${jail_name}
+  jail="${HOME}/.jails/${jail_name}"
   make_jail "${jail}" "${bw_command}" || return 1
+
+  # These are always set, there is no good reason for you to unset these
+  __bw_opts="${__bw_opts}
+  --proc /proc"
+  __bw_opts="${__bw_opts}
+  --die-with-parent"
+
+  # If the user wants access to devices, we can't make read only
+  if has_option "dev"; then
+    __bw_opts="${__bw_opts}
+  --ro-bind / /"
+  else
+    __bw_opts="${__bw_opts}
+  --dev-bind / /"
+  fi
+
+  # If we fake dev, mount fake dev stuff
+  if has_option "dev"; then
+    __bw_opts="${__bw_opts}
+  --dev /dev"
+    # Started bugging out
+    # __bw_opts="${__bw_opts}
+  # --mqueue /dev/mqueue"
+  fi
 
   # Restrict other homes
   block_in_jail "/home"
-  __bw_opts="${__bw_opts} --bind ${jail}/home ${HOME}"
+  __bw_opts="${__bw_opts}
+  --bind ${jail}/home ${HOME}"
 
   # Blacklist first
   block_in_jail "/boot"
@@ -567,7 +582,8 @@ $1"
 
   # Bind var
   robind_if_exists "/var"
-  __bw_opts="${__bw_opts} --bind ${jail}/var/tmp /var/tmp"
+  __bw_opts="${__bw_opts}
+  --bind ${jail}/var/tmp /var/tmp"
 
   # For PulseAudio
   if has_option "audio"; then
@@ -577,31 +593,38 @@ $1"
   fi
 
   if has_option "user"; then
-    __bw_opts="${__bw_opts} --unshare-user-try"
+    __bw_opts="${__bw_opts}
+  --unshare-user-try"
   fi
 
   if has_option "ipc"; then
-    __bw_opts="${__bw_opts} --unshare-ipc"
+    __bw_opts="${__bw_opts}
+  --unshare-ipc"
   fi
 
   if has_option "pid"; then
-    __bw_opts="${__bw_opts} --unshare-pid"
+    __bw_opts="${__bw_opts}
+  --unshare-pid"
   fi
 
   if has_option "uts"; then
-    __bw_opts="${__bw_opts} --unshare-uts"
+    __bw_opts="${__bw_opts}
+  --unshare-uts"
   fi
 
   if has_option "cgroup"; then
-    __bw_opts="${__bw_opts} --unshare-cgroup-try"
+    __bw_opts="${__bw_opts}
+  --unshare-cgroup-try"
   fi
 
   if has_option "session" && [ "${launch_shell}" -eq 0 ]; then
-    __bw_opts="${__bw_opts} --new-session"
+    __bw_opts="${__bw_opts}
+  --new-session"
   fi
 
   if has_option "drop"; then
-    __bw_opts="${__bw_opts} --cap-drop ALL"
+    __bw_opts="${__bw_opts}
+  --cap-drop ALL"
   fi
 
   # Bind X11 socket
@@ -739,19 +762,19 @@ $1"
   unset robinds
 
   if [ -n "${run_opts}" ]; then
-    printf -- 'bww with options: %s\n\n' "${run_opts}"
+    printf -- '\nbww with options: %s\n\n' "${run_opts}"
   fi
 
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
-    printf -- 'Run brwap: %s %s %s %s\n' "${__bw_opts}" "${pre_opts}" \
+    printf -- 'Run brwap: %s\n%s \n%s %s\n' "${__bw_opts}" "${pre_opts}" \
       "${bw_command}" "$*"
 
     # shellcheck disable=SC2086
     exec bwrap ${__bw_opts} ${pre_opts} "${bw_command}" "$@" || return 1
   else
     # Launch bash into the program's jail
-    printf -- 'Run brwap: %s %s /usr/bin/env bash\n' \
+    printf -- 'Run brwap: %s\n%s /usr/bin/env bash\n' \
       "${__bw_opts}" "${pre_opts}"
 
     # shellcheck disable=SC2086
