@@ -794,5 +794,7 @@ __bw_opts=""
 # isolated ipc currently causes lots of black box menus
 __ignore_opts="user ipc"
 
+# bww
+# by: pyamsoft <developer(dot)pyamsoft(at)gmail(dot)com>
 main "$@" || exit 1
 exit 0
