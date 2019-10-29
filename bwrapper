@@ -80,14 +80,7 @@ main()
     set -- "${command_name}"
   fi
 
-  target_dir="${HOME}/bin"
-  if [ ! -d "${target_dir}" ]; then
-    printf -- '%s expects the directory: %s to exist on the PATH\n' \
-      "${__PROGRAM_NAME}" "${target_dir}"
-    return 1
-  fi
-
-  target_file="${target_dir}/${command_name}"
+  target_file="./${command_name}"
   if [ -f "${target_file}" ]; then
     printf -- 'Remove old file at %s...\n' "${target_file}"
     rm -f "${target_file}" || return 1
