@@ -791,8 +791,7 @@ $1"
 __bw_opts=""
 
 # Kernel does not support user namespaces yet
-# isolated ipc currently causes lots of black box menus
-__ignore_opts="user ipc"
+__ignore_opts="user"
 
 # bww
 # by: pyamsoft <developer(dot)pyamsoft(at)gmail(dot)com>
