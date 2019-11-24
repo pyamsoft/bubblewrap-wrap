@@ -556,17 +556,11 @@ $1"
   block_in_jail "/etc/systemd"
 
   # Not on every system (Debian for example)
-  if [ -d /usr/lib/modules ]; then
-    block_in_jail "/usr/lib/modules"
-  fi
-  if [ -d /usr/lib/modprobe.d ]; then
-    block_in_jail "/usr/lib/modprobe.d"
-  fi
+  block_in_jail "/usr/lib/modules"
+  block_in_jail "/usr/lib/modprobe.d"
 
   # Blacklist any mass storage directories by default
-  if [ -d /storage ]; then
-    block_in_jail "/storage"
-  fi
+  block_in_jail "/storage"
 
   # Block /tmp access unless ignored
   if has_option "tmp"; then
@@ -588,8 +582,10 @@ $1"
   # For PulseAudio
   if has_option "audio"; then
     robind_if_exists "${HOME}/.config/pulse"
+    devbind_if_exists "/dev/snd"
   else
     block_in_jail "/run/user/$(id -u)/pulse"
+    block_in_jail "/dev/snd"
   fi
 
   if has_option "user"; then
