@@ -598,9 +598,8 @@ $1"
   if has_option "dev"; then
     __bw_opts="${__bw_opts}
   --dev /dev"
-    # Started bugging out
-    # __bw_opts="${__bw_opts}
-  # --mqueue /dev/mqueue"
+    __bw_opts="${__bw_opts}
+  --mqueue /dev/mqueue"
   fi
 
   # Restrict other homes
