@@ -62,13 +62,14 @@ block_in_jail()
 ##
 # Bind if exists
 # $1 - path
-bind_if_exists()
+__bind_if_exists()
 {
   if [ -e "$1" ]; then
     # If its a symlink, bind the real file too
     if [ -L "$1" ]; then
       real_path="$(realpath "$1")"
       if [ -e "${real_path}" ]; then
+        printf -- 'Bind in jail %s\n' "${real_path}"
         __bw_opts="${__bw_opts}
   --bind ${real_path} ${real_path}"
       else
@@ -78,6 +79,7 @@ bind_if_exists()
     fi
 
     # Always bind requested
+    printf -- 'Bind in jail %s\n' "$1"
     __bw_opts="${__bw_opts}
   --bind $1 $1"
   else
@@ -86,15 +88,26 @@ bind_if_exists()
 }
 
 ##
+# Bind if exists
+# $@ - paths
+bind_if_exists()
+{
+  for path in "$@"; do
+    __bind_if_exists "${path}"
+  done
+}
+
+##
 # RO-Bind if exists
 # $1 - path
-robind_if_exists()
+__robind_if_exists()
 {
   if [ -e "$1" ]; then
     # If its a symlink, ro-bind the real file too
     if [ -L "$1" ]; then
       real_path="$(realpath "$1")"
       if [ -e "${real_path}" ]; then
+        printf -- 'RO-bind in jail %s\n' "${real_path}"
         __bw_opts="${__bw_opts}
   --ro-bind ${real_path} ${real_path}"
       else
@@ -104,6 +117,7 @@ robind_if_exists()
     fi
 
     # Always ro-bind requested
+    printf -- 'RO-bind in jail %s\n' "$1"
     __bw_opts="${__bw_opts}
   --ro-bind $1 $1"
   else
@@ -112,15 +126,26 @@ robind_if_exists()
 }
 
 ##
+# RO-Bind if exists
+# $@ - paths
+robind_if_exists()
+{
+  for path in "$@"; do
+    __robind_if_exists "${path}"
+  done
+}
+
+##
 # DEV-Bind if exists
 # $1 - path
-devbind_if_exists()
+__devbind_if_exists()
 {
   if [ -e "$1" ]; then
     # If its a symlink, dev-bind the real file too
     if [ -L "$1" ]; then
       real_path="$(realpath "$1")"
       if [ -e "${real_path}" ]; then
+        printf -- 'DEV-bind in jail %s\n' "${real_path}"
         __bw_opts="${__bw_opts}
   --dev-bind ${real_path} ${real_path}"
       else
@@ -130,11 +155,22 @@ devbind_if_exists()
     fi
 
     # Always dev-bind requested
+    printf -- 'DEV-bind in jail %s\n' "$1"
     __bw_opts="${__bw_opts}
   --dev-bind $1 $1"
   else
     printf -- 'W: Unable to dev-bind %s, path does not exist\n' "$1"
   fi
+}
+
+##
+# DEV-Bind if exists
+# $@ -- paths
+devbind_if_exists()
+{
+  for path in "$@"; do
+    __devbind_if_exists "${path}"
+  done
 }
 
 ##
