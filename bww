@@ -247,6 +247,7 @@ usage: bww [options] <program> [program-arguments]
   --nogl                    Do not allow 3D graphics in jail
   --nothemes                Do not adopt existing desktop themes for GTK and QT
 
+  --v4l                     Allow access to v4l devices
   --systemd                 Allow access to systemd from jail
   --dconf                   Allow access to dconf from jail
   --keyring                 Allow access to gnome-keyring from jail
@@ -419,6 +420,13 @@ main()
         run_opts="${run_opts}
 --systemd"
         printf -- 'INFO: systemd allowed in jail\n'
+        shift
+        ;;
+      --v4l)
+        __ignore_opts="${__ignore_opts} nov4l"
+        run_opts="${run_opts}
+--v4l"
+        printf -- 'INFO: v4l allowed in jail\n'
         shift
         ;;
       --bind-if-exists)
@@ -724,6 +732,15 @@ $1"
   if ! has_option "nosystemd"; then
     # Bind systemd socket
     bind_if_exists "/run/systemd"
+  fi
+
+  # Any program which relies on v4l
+  if ! has_option "nov4l"; then
+    # Bind v4l devices if we are not using real dev
+    if has_option "dev"; then
+      bind_if_exists "/dev/v4l"
+      bind_if_exists /dev/video*
+    fi
   fi
 
   # Any theme related dirs
