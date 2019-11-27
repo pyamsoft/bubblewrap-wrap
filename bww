@@ -221,39 +221,40 @@ usage()
   printf -- '%s\n\n' "$(cat << EOF
 usage: bww [options] <program> [program-arguments]
 
-  --help                    Display this help
+  --help                      Display this help
 
-  --bind-if-exists <path>   Bind a path outside of jail to the same path
-                            in jail if the directory exists
-  --robind-if-exists <path> Read only bind a path outside of jail to
-                            the same path in jail if the directory exists
-  --forcename <name>        Force the jail to be named using the given name
-                            instead of adopting the program's name
-  --shell                   Launch bash inside of the jail instead of running
-                            the program itself
+  --bind-if-exists <path>     Bind a path outside of jail to the same path
+                              in jail if the directory exists
+  --robind-if-exists <path>   Read only bind a path outside of jail to
+  --devbind-if-exists <path>  Dev bind a path outside of jail to the same path
+                              the same path in jail if the directory exists
+  --forcename <name>          Force the jail to be named using the given name
+                              instead of adopting the program's name
+  --shell                     Launch bash inside of the jail instead of running
+                              the program itself
 
-  --nodev                   Do not sandbox /dev, use real /dev
-  --notmp                   Do not sandbox /tmp
-  --noaudio                 Do not allow pulseaudio in jail
-  --nouser                  No user namespace sandboxing
-  --noipc                   No ipc namespace sandboxing
-  --nopid                   No pid namespace sandboxing
-  --nouts                   No uts namespace sandboxing
-  --nocgroup                No cgroup namespace sandboxing
-  --nosession               Do not create a new session (for CLI applications)
-  --nodrop                  Do not drop capabilities after launch
-  --nox11                   Do not bind X11 socket
-  --nodbus                  Do not bind dbus daemon socket
-  --nogl                    Do not allow 3D graphics in jail
-  --nothemes                Do not adopt existing desktop themes for GTK and QT
+  --nodev                     Do not sandbox /dev, use real /dev
+  --notmp                     Do not sandbox /tmp
+  --noaudio                   Do not allow pulseaudio in jail
+  --nouser                    No user namespace sandboxing
+  --noipc                     No ipc namespace sandboxing
+  --nopid                     No pid namespace sandboxing
+  --nouts                     No uts namespace sandboxing
+  --nocgroup                  No cgroup namespace sandboxing
+  --nosession                 Do not create a new session (for CLI applications)
+  --nodrop                    Do not drop capabilities after launch
+  --nox11                     Do not bind X11 socket
+  --nodbus                    Do not bind dbus daemon socket
+  --nogl                      Do not allow 3D graphics in jail
+  --nothemes                  Do not adopt existing desktop themes for GTK and QT
 
-  --v4l                     Allow access to v4l devices
-  --systemd                 Allow access to systemd from jail
-  --dconf                   Allow access to dconf from jail
-  --keyring                 Allow access to gnome-keyring from jail
-  --gpg                     Allow access to gnupg from jail
-  --p11                     Allow access to polkit from jail
-  --gvfs                    Allow access to GVFS from jail
+  --v4l                       Allow access to v4l devices
+  --systemd                   Allow access to systemd from jail
+  --dconf                     Allow access to dconf from jail
+  --keyring                   Allow access to gnome-keyring from jail
+  --gpg                       Allow access to gnupg from jail
+  --p11                       Allow access to polkit from jail
+  --gvfs                      Allow access to GVFS from jail
 
 EOF
 )" || return 1
@@ -275,6 +276,7 @@ main()
   pre_opts=""
   binds=""
   robinds=""
+  devbinds=""
   run_opts=""
   while :; do
     case "$1" in
@@ -460,6 +462,23 @@ main()
         robinds="${split_arg} ${robinds}"
         run_opts="${run_opts}
 --robind-if-exists=${split_arg}"
+        unset split_arg
+        shift
+        ;;
+      --devbind-if-exists)
+        # Eat argument
+        shift
+        # Add to list
+        devbinds="$1 ${devbinds}"
+        run_opts="${run_opts}
+--devbind-if-exists $1"
+        shift
+        ;;
+      --devbind-if-exists=*)
+        split_arg="$(split_equal_get_arg "$1")"
+        devbinds="${split_arg} ${devbinds}"
+        run_opts="${run_opts}
+--devbind-if-exists=${split_arg}"
         unset split_arg
         shift
         ;;
@@ -807,8 +826,12 @@ $1"
   for robinding in ${robinds}; do
     robind_if_exists "${robinding}"
   done
+  for devbinding in ${devbinds}; do
+    devbind_if_exists "${devbinding}"
+  done
   unset binds
   unset robinds
+  unset devbinds
 
   if [ -n "${run_opts}" ]; then
     printf -- '\nbww with options: %s\n\n' "${run_opts}"
