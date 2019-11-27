@@ -598,8 +598,12 @@ $1"
   if has_option "dev"; then
     __bw_opts="${__bw_opts}
   --dev /dev"
-    __bw_opts="${__bw_opts}
+
+    # If we are not sharing IPC, then we cannot mount a new mqueue
+    if has_option "ipc"; then
+      __bw_opts="${__bw_opts}
   --mqueue /dev/mqueue"
+    fi
   fi
 
   # Restrict other homes
