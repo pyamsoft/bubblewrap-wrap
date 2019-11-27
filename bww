@@ -738,8 +738,8 @@ $1"
   if ! has_option "nov4l"; then
     # Bind v4l devices if we are not using real dev
     if has_option "dev"; then
-      bind_if_exists "/dev/v4l"
-      bind_if_exists /dev/video*
+      devbind_if_exists "/dev/v4l"
+      devbind_if_exists /dev/video*
     fi
   fi
 
