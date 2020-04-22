@@ -61,30 +61,45 @@ block_in_jail()
 
 ##
 # Bind if exists
-# $1 - path
+# $1 - command, either --bind --ro-bind --dev-bind
+# $2 - path
 __bind_if_exists()
 {
-  if [ -e "$1" ]; then
+  bind_command="$1"
+  bind_path="$2"
+
+  is_symlink=0
+  real_path=""
+
+  if [ -e "${bind_path}" ]; then
     # If its a symlink, bind the real file too
-    if [ -L "$1" ]; then
-      real_path="$(realpath "$1")"
+    if [ -L "${bind_path}" ]; then
+      # We need to check if we can also carry over the original file
+      is_symlink=1
+      real_path="$(realpath "${bind_path}")"
       if [ -e "${real_path}" ]; then
-        printf -- 'Bind in jail %s\n' "${real_path}"
+        printf -- '%s in jail %s\n' "${bind_command}" "${real_path}"
         __bw_opts="${__bw_opts}
-  --bind ${real_path} ${real_path}"
+  ${bind_command} ${real_path} ${real_path}"
       else
-        printf -- 'W: Unable to bind symlink %s, real path %s does not exist\n' \
-          "$1" "${real_path}"
+        printf -- 'W: Unable to %s symlink %s, real path %s does not exist\n' \
+          "${bind_command}" "${bind_path}" "${real_path}"
       fi
     fi
 
-    # Always bind requested
-    printf -- 'Bind in jail %s\n' "$1"
-    __bw_opts="${__bw_opts}
-  --bind $1 $1"
+    if { [ "${is_symlink}" -eq 1 ] && [ -w "${bind_path}" ]; } || [ "${is_symlink}" -eq 0 ]; then
+      printf -- '%s in jail %s\n' "${bind_command}" "${bind_path}"
+      __bw_opts="${__bw_opts}
+  ${bind_command} ${bind_path} ${bind_path}"
+    fi
   else
-    printf -- 'W: Unable to bind %s, path does not exist\n' "$1"
+    printf -- 'W: Unable to %s %s, path does not exist\n' "${bind_command}" "${bind_path}"
   fi
+
+  unset bind_path
+  unset bind_command
+  unset is_symlink
+  unset real_path
 }
 
 ##
@@ -93,36 +108,8 @@ __bind_if_exists()
 bind_if_exists()
 {
   for path in "$@"; do
-    __bind_if_exists "${path}"
+    __bind_if_exists "--bind" "${path}"
   done
-}
-
-##
-# RO-Bind if exists
-# $1 - path
-__robind_if_exists()
-{
-  if [ -e "$1" ]; then
-    # If its a symlink, ro-bind the real file too
-    if [ -L "$1" ]; then
-      real_path="$(realpath "$1")"
-      if [ -e "${real_path}" ]; then
-        printf -- 'RO-bind in jail %s\n' "${real_path}"
-        __bw_opts="${__bw_opts}
-  --ro-bind ${real_path} ${real_path}"
-      else
-        printf -- 'W: Unable to ro-bind symlink %s, real path %s does not exist\n' \
-          "$1" "${real_path}"
-      fi
-    fi
-
-    # Always ro-bind requested
-    printf -- 'RO-bind in jail %s\n' "$1"
-    __bw_opts="${__bw_opts}
-  --ro-bind $1 $1"
-  else
-    printf -- 'W: Unable to ro-bind %s, path does not exist\n' "$1"
-  fi
 }
 
 ##
@@ -131,36 +118,8 @@ __robind_if_exists()
 robind_if_exists()
 {
   for path in "$@"; do
-    __robind_if_exists "${path}"
+    __bind_if_exists "--ro-bind" "${path}"
   done
-}
-
-##
-# DEV-Bind if exists
-# $1 - path
-__devbind_if_exists()
-{
-  if [ -e "$1" ]; then
-    # If its a symlink, dev-bind the real file too
-    if [ -L "$1" ]; then
-      real_path="$(realpath "$1")"
-      if [ -e "${real_path}" ]; then
-        printf -- 'DEV-bind in jail %s\n' "${real_path}"
-        __bw_opts="${__bw_opts}
-  --dev-bind ${real_path} ${real_path}"
-      else
-        printf -- 'W: Unable to dev-bind symlink %s, real path %s does not exist\n' \
-          "$1" "${real_path}"
-      fi
-    fi
-
-    # Always dev-bind requested
-    printf -- 'DEV-bind in jail %s\n' "$1"
-    __bw_opts="${__bw_opts}
-  --dev-bind $1 $1"
-  else
-    printf -- 'W: Unable to dev-bind %s, path does not exist\n' "$1"
-  fi
 }
 
 ##
@@ -169,7 +128,7 @@ __devbind_if_exists()
 devbind_if_exists()
 {
   for path in "$@"; do
-    __devbind_if_exists "${path}"
+    __bind_if_exists "--dev-bind" "${path}"
   done
 }
 
@@ -636,6 +595,10 @@ $1"
   # Block the /run directory
   block_in_jail "/run"
   block_in_jail "/run/lock"
+  block_in_jail "/run/systemd"
+
+  # For systemd-resolved
+  robind_if_exists "/run/systemd/resolve"
 
   # Bind the real user directory
   bind_if_exists "/run/user/$(id -u)"
@@ -804,23 +767,7 @@ $1"
   fi
 
   # Preset read only binds
-  robind_if_exists "/usr/bin"
-  robind_if_exists "/usr/sbin"
-  robind_if_exists "/usr/lib"
-  robind_if_exists "/usr/lib32"
-  robind_if_exists "/usr/lib64"
-  robind_if_exists "/usr/share"
-  robind_if_exists "/usr/include"
   robind_if_exists "/usr"
-  robind_if_exists "/etc/fonts"
-  robind_if_exists "/etc/group"
-  robind_if_exists "/etc/hostname"
-  robind_if_exists "/etc/hosts"
-  robind_if_exists "/etc/mime.types"
-  robind_if_exists "/etc/nsswitch.conf"
-  robind_if_exists "/etc/passwd"
-  robind_if_exists "/etc/resolv.conf"
-  robind_if_exists "/etc/xdg"
   robind_if_exists "/etc"
 
   # Extra binds
