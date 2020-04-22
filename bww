@@ -41,21 +41,21 @@ block_in_jail()
   target="$1"
 
   if [ -z "${target}" ]; then
-    printf -- 'W: Unable to block_in_jail, no argument\n'
+    printf -- 'WARN: Unable to --tmpfs block, no argument\n'
     return 1
   fi
 
   if [ ! -e "${target}" ]; then
-    printf -- 'Unable to block target: %s, does not exist.\n' "${target}"
+    printf -- 'WARN: Unable to --tmpfs block target: %s, does not exist.\n' "${target}"
     return 1
   fi
 
   if [ -d "${target}" ]; then
-    printf -- 'Blocking target dir %s via tmpfs\n' "${target}"
+    printf -- '--tmpfs blocking target dir %s via tmpfs\n' "${target}"
     __bw_opts="${__bw_opts}
   --tmpfs ${target}"
   else
-    printf -- 'Unable to block non-directory target: %s\n' "${target}"
+    printf -- 'WARN: Unable to --tmpfs block non-directory target: %s\n' "${target}"
   fi
 }
 
@@ -82,18 +82,26 @@ __bind_if_exists()
         __bw_opts="${__bw_opts}
   ${bind_command} ${real_path} ${real_path}"
       else
-        printf -- 'W: Unable to %s symlink %s, real path %s does not exist\n' \
+        printf -- 'WARN: Unable to %s symlink %s, real path %s does not exist\n' \
           "${bind_command}" "${bind_path}" "${real_path}"
       fi
     fi
 
-    if { [ "${is_symlink}" -eq 1 ] && [ -w "${bind_path}" ]; } || [ "${is_symlink}" -eq 0 ]; then
+    if [ "${is_symlink}" -eq 1 ]; then
+      if [ -w "${bind_path}" ]; then
+        printf -- '%s in jail %s\n' "${bind_command}" "${bind_path}"
+        __bw_opts="${__bw_opts}
+  ${bind_command} ${bind_path} ${bind_path}"
+      else
+        printf -- 'WARN: Unable to %s symlink at %s, lacking permission\n' "${bind_command}" "${bind_path}"
+      fi
+    else
       printf -- '%s in jail %s\n' "${bind_command}" "${bind_path}"
       __bw_opts="${__bw_opts}
   ${bind_command} ${bind_path} ${bind_path}"
     fi
   else
-    printf -- 'W: Unable to %s %s, path does not exist\n' "${bind_command}" "${bind_path}"
+    printf -- 'WARN: Unable to %s %s, path does not exist\n' "${bind_command}" "${bind_path}"
   fi
 
   unset bind_path
