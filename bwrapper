@@ -29,7 +29,7 @@ usage: ${__PROGRAM_NAME} <program> [argument-string]
 
   argument-string can be any normal command line arguments you
   pass if you were calling bww from the command line.
-  The first occurrence of %s will be replaced by the "%cmd"
+  The first occurrence of %s will be replaced by the "%cmd%"
   program name.
 
 EOF
@@ -65,7 +65,7 @@ main()
   if [ -n "$*" ]; then
     found_command=0
     for cmd in "$@"; do
-      if [ "${cmd}" = "%cmd" ]; then
+      if [ "${cmd}" = "%cmd%" ]; then
         found_command=1
         break
       fi
