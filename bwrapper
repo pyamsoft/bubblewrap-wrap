@@ -43,6 +43,8 @@ main()
   command_name="$1"
   shift
 
+  expect_cmd="%cmd%"
+
   if [ -z "${command_name}" ]; then
     printf -- 'Must specify a command\n\n'
     print_usage || return 1
@@ -65,7 +67,7 @@ main()
   if [ -n "$*" ]; then
     found_command=0
     for cmd in "$@"; do
-      if [ "${cmd}" = "%cmd%" ]; then
+      if [ "${cmd}" = "${expect_cmd}" ]; then
         found_command=1
         break
       fi
@@ -99,7 +101,7 @@ main()
 exec bww $@ "\$@"
 EOF
 
-  sed -i "s/%cmd/${command_name}/" "${target_file}"
+  sed -i "s/${expect_cmd}/${command_name}/" "${target_file}"
 
   printf -- 'Mark %s as executable...\n' "${target_file}"
   chmod 700 "${target_file}" || return 1
