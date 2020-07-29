@@ -200,6 +200,7 @@ usage: bww [options] <program> [program-arguments]
   --shell                     Launch bash inside of the jail instead of running
                               the program itself
 
+  --nodie                     Do not die with parent, useful for programs that fork
   --nodev                     Do not sandbox /dev, use real /dev
   --notmp                     Do not sandbox /tmp
   --noaudio                   Do not allow pulseaudio in jail
@@ -250,6 +251,13 @@ main()
       --help)
         usage || return 1
         return 0
+        ;;
+      --nodie)
+        __ignore_opts="${__ignore_opts} die"
+        run_opts="${run_opts}
+--nodie"
+        printf -- 'INFO: Child process will not die with bwrap. Must be killed manually.\n'
+        shift
         ;;
       --nodev)
         __ignore_opts="${__ignore_opts} dev"
@@ -543,14 +551,20 @@ $1"
     jail_name="${short_command}"
   fi
 
+  # Put the $HOME for this program into a jailed directory.
+  # To clean up the program and all traces of user configuration, just rm the jail
   jail="${HOME}/.bww/jails/${jail_name}"
   make_jail "${jail}" "${bw_command}" || return 1
 
-  # These are always set, there is no good reason for you to unset these
+  # Basically always meant to block /proc
   __bw_opts="${__bw_opts}
   --proc /proc"
-  __bw_opts="${__bw_opts}
+
+  # If we are marked as do-not-die, then don't add die-with-parent
+  if has_option "die"; then
+    __bw_opts="${__bw_opts}
   --die-with-parent"
+  fi
 
   # If the user wants access to devices, we can't make read only
   if has_option "dev"; then
