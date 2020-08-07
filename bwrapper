@@ -98,6 +98,31 @@ main()
 # This script expects the 'bww' script to be available to the user somewhere
 # on the \$PATH. It will fail if the situation proves otherwise.
 
+readonly arguments=""
+
+if [ "\$1" = "--" ]; then
+  # Stop bww argument parsing (in case the command you want to run is actually called "shell")
+  # To pass a '--' argument to the wrapped program, you must pass -- again so
+  #
+  # \$ my_program -A -B -C -- x y z      =>
+  # \$ my_program -- -A -B -C -- x y z
+  shift
+
+  # shellcheck disable=SC2086
+  exec bww \$arguments $@ "\$@"
+elif [ "\$1" = "shell" ]; then
+  # Launch a shell in the environment
+  shift
+
+  # No extra arguments for shells
+
+  # shellcheck disable=SC2086
+  exec bww \$arguments --shell $@
+else
+  # shellcheck disable=SC2086
+  exec bww \$arguments $@ "\$@"
+fi
+
 exec bww $@ "\$@"
 EOF
 
