@@ -29,8 +29,11 @@ usage: ${__PROGRAM_NAME} <program> [argument-string]
 
   argument-string can be any normal command line arguments you
   pass if you were calling bww from the command line.
-  The first occurrence of %s will be replaced by the "%cmd%"
-  program name.
+
+  All arguments in the argument-string are passed to bww, not to <program>
+
+  A proxy command is generated called by "<program> shell" which launches a
+  --shell into the bww jail for <program>
 
 EOF
 )"
@@ -42,8 +45,6 @@ main()
 {
   command_name="$1"
   shift
-
-  expect_cmd="%cmd%"
 
   if [ -z "${command_name}" ]; then
     printf -- 'Must specify a command\n\n'
@@ -64,24 +65,6 @@ main()
     return 1
   fi
 
-  if [ -n "$*" ]; then
-    found_command=0
-    for cmd in "$@"; do
-      if [ "${cmd}" = "${expect_cmd}" ]; then
-        found_command=1
-        break
-      fi
-    done
-
-    if [ "${found_command}" -eq 0 ]; then
-      printf -- 'Must specify command somewhere in the arguments\n\n'
-      print_usage || return 1
-      return 1
-    fi
-  else
-    set -- "${command_name}"
-  fi
-
   target_file="./${command_name}"
   if [ -f "${target_file}" ]; then
     printf -- 'Remove old file at %s...\n' "${target_file}"
@@ -98,7 +81,7 @@ main()
 # This script expects the 'bww' script to be available to the user somewhere
 # on the \$PATH. It will fail if the situation proves otherwise.
 
-readonly arguments=""
+readonly arguments="$@"
 
 if [ "\$1" = "--" ]; then
   # Stop bww argument parsing (in case the command you want to run is actually called "shell")
@@ -109,7 +92,7 @@ if [ "\$1" = "--" ]; then
   shift
 
   # shellcheck disable=SC2086
-  exec bww \$arguments $@ "\$@"
+  exec bww \$arguments ${command_name} "\$@"
 elif [ "\$1" = "shell" ]; then
   # Launch a shell in the environment
   shift
@@ -117,14 +100,12 @@ elif [ "\$1" = "shell" ]; then
   # No extra arguments for shells
 
   # shellcheck disable=SC2086
-  exec bww \$arguments --shell $@
+  exec bww \$arguments --shell ${command_name}
 else
   # shellcheck disable=SC2086
-  exec bww \$arguments $@ "\$@"
+  exec bww \$arguments ${command_name} "\$@"
 fi
 EOF
-
-  sed -i "s/${expect_cmd}/${command_name}/" "${target_file}"
 
   printf -- 'Mark %s as executable...\n' "${target_file}"
   chmod 700 "${target_file}" || return 1
