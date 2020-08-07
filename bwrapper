@@ -122,8 +122,6 @@ else
   # shellcheck disable=SC2086
   exec bww \$arguments $@ "\$@"
 fi
-
-exec bww $@ "\$@"
 EOF
 
   sed -i "s/${expect_cmd}/${command_name}/" "${target_file}"
