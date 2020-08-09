@@ -104,7 +104,7 @@ elif [ "\$1" = "shell" ]; then
   exec bww \$arguments --shell "\${command_name}"
 else
   # shellcheck disable=SC2086
-  exec bww \$arguments \"${command_name}" "\$@"
+  exec bww \$arguments "\${command_name}" "\$@"
 fi
 EOF
 
