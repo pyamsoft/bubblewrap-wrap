@@ -82,6 +82,7 @@ main()
 # on the \$PATH. It will fail if the situation proves otherwise.
 
 readonly arguments="$@"
+readonly command_name="${command_name}"
 
 if [ "\$1" = "--" ]; then
   # Stop bww argument parsing (in case the command you want to run is actually called "shell")
@@ -92,7 +93,7 @@ if [ "\$1" = "--" ]; then
   shift
 
   # shellcheck disable=SC2086
-  exec bww \$arguments ${command_name} "\$@"
+  exec bww \$arguments "\${command_name}" "\$@"
 elif [ "\$1" = "shell" ]; then
   # Launch a shell in the environment
   shift
@@ -100,10 +101,10 @@ elif [ "\$1" = "shell" ]; then
   # No extra arguments for shells
 
   # shellcheck disable=SC2086
-  exec bww \$arguments --shell ${command_name}
+  exec bww \$arguments --shell "\${command_name}"
 else
   # shellcheck disable=SC2086
-  exec bww \$arguments ${command_name} "\$@"
+  exec bww \$arguments \"${command_name}" "\$@"
 fi
 EOF
 
