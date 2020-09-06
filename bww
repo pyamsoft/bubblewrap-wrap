@@ -556,9 +556,26 @@ $1"
   jail="${HOME}/.bww/jails/${jail_name}"
   make_jail "${jail}" "${bw_command}" || return 1
 
-  # Basically always meant to block /proc
-  __bw_opts="${__bw_opts}
-  --proc /proc"
+  # Always do this first, order matters
+
+  # If the user wants access to devices, we can't make read only
+  if has_option "dev"; then
+    __bw_opts="${__bw_opts}
+  --ro-bind / /"
+
+    # If we fake dev, mount fake dev stuff
+    __bw_opts="${__bw_opts}
+  --dev /dev"
+
+      # If we are not sharing IPC, then we cannot mount a new mqueue
+    if has_option "ipc"; then
+      __bw_opts="${__bw_opts}
+  --mqueue /dev/mqueue"
+    fi
+  else
+    __bw_opts="${__bw_opts}
+  --dev-bind / /"
+  fi
 
   # If we are marked as do-not-die, then don't add die-with-parent
   if has_option "die"; then
@@ -566,26 +583,47 @@ $1"
   --die-with-parent"
   fi
 
-  # If the user wants access to devices, we can't make read only
-  if has_option "dev"; then
+  # Create a new session unless we are launching a shell
+  if has_option "session" && [ "${launch_shell}" -eq 0 ]; then
     __bw_opts="${__bw_opts}
-  --ro-bind / /"
-  else
-    __bw_opts="${__bw_opts}
-  --dev-bind / /"
+  --new-session"
   fi
 
-  # If we fake dev, mount fake dev stuff
-  if has_option "dev"; then
+  # Handle namespaces before mounting other parts of the file system
+  if has_option "user"; then
     __bw_opts="${__bw_opts}
-  --dev /dev"
-
-    # If we are not sharing IPC, then we cannot mount a new mqueue
-    if has_option "ipc"; then
-      __bw_opts="${__bw_opts}
-  --mqueue /dev/mqueue"
-    fi
+  --unshare-user-try"
   fi
+
+  if has_option "ipc"; then
+    __bw_opts="${__bw_opts}
+  --unshare-ipc"
+  fi
+
+  if has_option "pid"; then
+    __bw_opts="${__bw_opts}
+  --unshare-pid"
+  fi
+
+  if has_option "uts"; then
+    __bw_opts="${__bw_opts}
+  --unshare-uts"
+  fi
+
+  if has_option "cgroup"; then
+    __bw_opts="${__bw_opts}
+  --unshare-cgroup-try"
+  fi
+
+  if has_option "drop"; then
+    __bw_opts="${__bw_opts}
+  --cap-drop ALL"
+  fi
+
+
+  # Basically always meant to block /proc
+  __bw_opts="${__bw_opts}
+  --proc /proc"
 
   # Restrict other homes
   block_in_jail "/home"
@@ -637,41 +675,6 @@ $1"
   else
     block_in_jail "/run/user/$(id -u)/pulse"
     block_in_jail "/dev/snd"
-  fi
-
-  if has_option "user"; then
-    __bw_opts="${__bw_opts}
-  --unshare-user-try"
-  fi
-
-  if has_option "ipc"; then
-    __bw_opts="${__bw_opts}
-  --unshare-ipc"
-  fi
-
-  if has_option "pid"; then
-    __bw_opts="${__bw_opts}
-  --unshare-pid"
-  fi
-
-  if has_option "uts"; then
-    __bw_opts="${__bw_opts}
-  --unshare-uts"
-  fi
-
-  if has_option "cgroup"; then
-    __bw_opts="${__bw_opts}
-  --unshare-cgroup-try"
-  fi
-
-  if has_option "session" && [ "${launch_shell}" -eq 0 ]; then
-    __bw_opts="${__bw_opts}
-  --new-session"
-  fi
-
-  if has_option "drop"; then
-    __bw_opts="${__bw_opts}
-  --cap-drop ALL"
   fi
 
   # Bind X11 socket
