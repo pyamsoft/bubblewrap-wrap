@@ -47,13 +47,13 @@ $ bww <program>
 
 If you're sick and tired of writing `bww` before everything, you can use the
 included `bwrapper` script, which will create a file named `<program>` inside
-of the `$HOME/bin` directory that will call through to `bww` when run. It
-is up to the user to configure the `$HOME/bin` directory to be on the `$PATH`.
+of the `$HOME/.bww/bin` directory that will call through to `bww` when run. It
+is up to the user to configure the `$HOME/.bww/bin` directory to be on the `$PATH`.
 `bww` makes no assumptions about the existing configuration, but will follow
 these defaults:
 
-Jailed programs will live in `$HOME/.jails/<program>` and `bwrapper` generated
-scripts will live in `$HOME/bin`. The `.jails` directory will be created for
+Jailed programs will live in `$HOME/.bww/jails/<program>` and `bwrapper` generated
+scripts will live in `$HOME/.bww/bin`. The `$HOME/.bww/jails` directory will be created for
 you if it does not exist.
 
 ## License
