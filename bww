@@ -683,7 +683,7 @@ $1"
   fi
 
   basejaildir="${HOME}/.bww"
-  bindir="${basejaildir}/bin/${jail_name}"
+  bindir="${basejaildir}/bin"
   jaildir="${basejaildir}/jails"
   if [ "${destroy_jail}" -ne 0 ]; then
     do_destroy "${bw_command}" "${jail_name}" "${bindir}" "${jaildir}" || return 1
