@@ -199,6 +199,7 @@ usage: bww [options] <program> [program-arguments]
 
   [JAIL]
   --forcename <name>          Force the jail to be named using the given name instead of adopting the program's name
+  --destroy <name>            Destroy a jail by removing its jail home directory and script file if they exist
 
   [MOUNT]
   --bind-if-exists <path>     Bind a path outside of jail to the same path in jail if the directory exists
