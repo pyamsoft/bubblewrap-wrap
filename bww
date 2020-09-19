@@ -246,6 +246,108 @@ EOF
   return 0
 }
 
+##
+# rm (-r) a target
+# $1 target
+# $2 recursive
+rm_me()
+{
+  rm_me__target="$1"
+  rm_me__r="$2"
+
+  printf -- 'Destroying %s in 3 seconds... Ctrl+C to cancel\n' "${rm_me__target}"
+  sleep 3s || {
+    printf -- 'Destroy cancelled for %s\n' "${rm_me__target}"
+
+    unset rm_me__r
+    unset rm_me__target
+    return 1
+  }
+
+  if [ -n "${rm_me__target}" ] && [ -e "${rm_me__target}" ]; then
+    if [ -n "${rm_me__r}" ] && [ "${rm_me__r}" -ne 0 ]; then
+      rm -r -f -v "${rm_me__target}" || {
+        printf -- 'Failed to remove %s\n' "${rm_me__target}"
+
+        unset rm_me__r
+        unset rm_me__target
+        return 1
+      }
+    else
+      rm -f -v "${rm_me__target}" || {
+        printf -- 'Failed to remove %s\n' "${rm_me__target}"
+
+        unset rm_me__r
+        unset rm_me__target
+        return 1
+      }
+    fi
+  fi
+
+  unset rm_me__r
+  unset rm_me__target
+  return 0
+}
+
+##
+# Destroy a jail
+# $1 command name
+# $2 jail name
+# $3 bin directory
+# $4 jail directory
+do_destroy()
+{
+  do_destroy__cmd="$1"
+  do_destroy__name="$2"
+  do_destroy__bin="$3"
+  do_destroy__jail="$4"
+
+  # NOTE: If you, for whatever reason are doing something like this
+  #
+  # $ bww --forcename=program1 program2
+  # $ bww --forcename=program2 program1
+  #
+  # Then the --destroy command will do the wrong thing for you.
+  # When called as bww --destroy program1, it will remove the program1 binary from ${do_destroy__bin}
+  # but will remove the ${do_destroy__jail} of program2. In this case, I am sure you know better than a script.
+  # Alternatively, try to not alias names in this kind of roundabout way because its just kind of weird.
+
+    # Interactive to prompt
+    printf -- 'Really destroy %s (y/N)?' "${rm_me__target}"
+    read -r do_destroy__confirm
+    if [ "${do_destroy__confirm}" != "y" ] && [ "${do_destroy__confirm}" != "Y" ]; then
+      # Bail out without confirmation
+      unset do_destroy__confirm
+      unset do_destroy__jail
+      unset do_destroy__bin
+      unset do_destroy__name
+      unset do_destroy__cmd
+      return 1
+    fi
+
+  # Name is forced, do double
+  if [ "${do_destroy__name}" != "${do_destroy__cmd}" ]; then
+    rm_me "${do_destroy__bin}/${do_destroy__cmd}" || return 1
+    rm_me "${do_destroy__jail}/${do_destroy__cmd}" 1 || return 1
+    rm_me "${do_destroy__bin}/${do_destroy__name}" || return 1
+    rm_me "${do_destroy__jail}/${do_destroy__name}" 1 || return 1
+    printf -- 'bww jail for %s was destroyed\n' "${do_destroy__cmd}"
+    printf -- 'bww jail for %s was destroyed\n' "${do_destroy__name}"
+  else
+    rm_me "${do_destroy__bin}/${do_destroy__cmd}" || return 1
+    rm_me "${do_destroy__jail}/${do_destroy__cmd}" 1 || return 1
+    printf -- 'bww jail for %s was destroyed\n' "${do_destroy__cmd}"
+  fi
+
+
+  unset do_destroy__confirm
+  unset do_destroy__jail
+  unset do_destroy__bin
+  unset do_destroy__name
+  unset do_destroy__cmd
+  return 0
+}
+
 main()
 {
   if ! command -v bwrap > /dev/null 2>&1; then
@@ -253,9 +355,12 @@ main()
     return 1
   fi
 
-  # Loop and consume arguments until we can't anymore
+  # Destroying a jail has a special format
+  # bww --destroy [--forcename=<name>] <jailname>
 
+  # Loop and consume arguments until we can't anymore
   launch_shell=0
+  destroy_jail=0
   force_jail_name=""
   pre_opts=""
   binds=""
@@ -493,6 +598,11 @@ main()
         unset split_arg
         shift
         ;;
+      --destroy)
+        # should have 1 arguments, shift 1 more times
+        shift
+        destroy_jail=1
+        ;;
       --tmpfs)
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
@@ -571,9 +681,17 @@ $1"
     jail_name="${short_command}"
   fi
 
+  basejaildir="${HOME}/.bww"
+  bindir="${basejaildir}/bin/${jail_name}"
+  jaildir="${basejaildir}/jails"
+  if [ "${destroy_jail}" -ne 0 ]; then
+    do_destroy "${bw_command}" "${jail_name}" "${bindir}" "${jaildir}" || return 1
+    return 0
+  fi
+
   # Put the $HOME for this program into a jailed directory.
-  # To clean up the program and all traces of user configuration, just rm the jail
-  jail="${HOME}/.bww/jails/${jail_name}"
+  # To clean up the program and all traces of user configuration, just rm the jail or use --destroy
+  jail="${jaildir}/${jail_name}"
   make_jail "${jail}" "${bw_command}" || return 1
 
   # Always do this first, order matters
