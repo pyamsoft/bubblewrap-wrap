@@ -183,12 +183,18 @@ has_option()
   return 0
 }
 
+##
+# Print usage
+# $1 Display all help
 usage()
 {
+  usage__all="$1"
+
   printf -- '%s\n\n' "$(cat << EOF
 usage: bww [options] <program> [program-arguments]
 
   --help                      Display this help
+  --help-all                  Display this help, and bwrap --help
 
   --bind-if-exists <path>     Bind a path outside of jail to the same path
                               in jail if the directory exists
@@ -226,7 +232,12 @@ usage: bww [options] <program> [program-arguments]
 
 EOF
 )" || return 1
-  bwrap --help || return 1
+
+  # Extended help
+  if [ -n "${usage__all}" ] && [ "${usage__all}" -ne 0 ]; then
+    bwrap --help || return 1
+  fi
+
   return 0
 }
 
@@ -250,6 +261,10 @@ main()
     case "$1" in
       --help)
         usage || return 1
+        return 0
+        ;;
+      --help-all)
+        usage 1 || return 1
         return 0
         ;;
       --nodie)
