@@ -193,29 +193,34 @@ usage()
   printf -- '%s\n\n' "$(cat << EOF
 usage: bww [options] <program> [program-arguments]
 
+  [HELP]
   --help                      Display this help
   --help-all                  Display this help, and bwrap --help
 
-  --bind-if-exists <path>     Bind a path outside of jail to the same path
-                              in jail if the directory exists
-  --robind-if-exists <path>   Read only bind a path outside of jail to
-  --devbind-if-exists <path>  Dev bind a path outside of jail to the same path
-                              the same path in jail if the directory exists
-  --forcename <name>          Force the jail to be named using the given name
-                              instead of adopting the program's name
-  --shell                     Launch bash inside of the jail instead of running
-                              the program itself
+  [JAIL]
+  --forcename <name>          Force the jail to be named using the given name instead of adopting the program's name
 
+  [MOUNT]
+  --bind-if-exists <path>     Bind a path outside of jail to the same path in jail if the directory exists
+  --robind-if-exists <path>   Read only bind a path outside of jail to the same path in jail if the directory exists
+  --devbind-if-exists <path>  Dev bind a path outside of jail to the same path in jail if the directory exists
+
+  [SESSION]
   --nodie                     Do not die with parent, useful for programs that fork
-  --nodev                     Do not sandbox /dev, use real /dev
-  --notmp                     Do not sandbox /tmp
-  --noaudio                   Do not allow pulseaudio in jail
-  --nouser                    No user namespace sandboxing
-  --noipc                     No ipc namespace sandboxing
-  --nopid                     No pid namespace sandboxing
-  --nouts                     No uts namespace sandboxing
-  --nocgroup                  No cgroup namespace sandboxing
   --nosession                 Do not create a new session (for CLI applications)
+  --shell                     Launch bash inside of the jail instead of running the program itself
+
+  [NAMESPACE]
+  --nouser                    Do not perform user namespace sandboxing
+  --noipc                     Do not perform ipc namespace sandboxing
+  --nopid                     Do not perform pid namespace sandboxing
+  --nouts                     Do not perform uts namespace sandboxing
+  --nocgroup                  Do not perform cgroup namespace sandboxing
+
+  [FEATURE]
+  --nodev                     Do not sandbox /dev, use real /dev
+  --notmp                     Do not sandbox /tmp, use real /tmp
+  --noaudio                   Do not allow pulseaudio in jail
   --nodrop                    Do not drop capabilities after launch
   --nox11                     Do not bind X11 socket
   --nodbus                    Do not bind dbus daemon socket
