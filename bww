@@ -256,15 +256,6 @@ rm_me()
   rm_me__target="$1"
   rm_me__r="$2"
 
-  printf -- 'Destroying %s in 3 seconds... Ctrl+C to cancel\n' "${rm_me__target}"
-  sleep 3s || {
-    printf -- 'Destroy cancelled for %s\n' "${rm_me__target}"
-
-    unset rm_me__r
-    unset rm_me__target
-    return 1
-  }
-
   if [ -n "${rm_me__target}" ] && [ -e "${rm_me__target}" ]; then
     if [ -n "${rm_me__r}" ] && [ "${rm_me__r}" -ne 0 ]; then
       rm -r -f -v "${rm_me__target}" || {
@@ -291,6 +282,14 @@ rm_me()
 }
 
 ##
+# Cancel jail destroy
+cancel_destroy ()
+{
+  printf -- '\n\n  Destroy cancelled for %s\n\n' "${do_destroy__name}"
+  exit 0
+}
+
+##
 # Destroy a jail
 # $1 command name
 # $2 jail name
@@ -313,18 +312,22 @@ do_destroy()
   # but will remove the ${do_destroy__jail} of program2. In this case, I am sure you know better than a script.
   # Alternatively, try to not alias names in this kind of roundabout way because its just kind of weird.
 
-    # Interactive to prompt
-    printf -- 'Really destroy %s (y/N)?' "${rm_me__target}"
-    read -r do_destroy__confirm
-    if [ "${do_destroy__confirm}" != "y" ] && [ "${do_destroy__confirm}" != "Y" ]; then
-      # Bail out without confirmation
-      unset do_destroy__confirm
-      unset do_destroy__jail
-      unset do_destroy__bin
-      unset do_destroy__name
-      unset do_destroy__cmd
-      return 1
-    fi
+  # Interactive to prompt
+  printf -- 'Really destroy %s (y/N)? ' "${do_destroy__name}"
+  read -r do_destroy__confirm
+  if [ "${do_destroy__confirm}" != "y" ] && [ "${do_destroy__confirm}" != "Y" ]; then
+    # Bail out without confirmation
+    unset do_destroy__confirm
+    unset do_destroy__jail
+    unset do_destroy__bin
+    unset do_destroy__name
+    unset do_destroy__cmd
+    return 1
+  fi
+
+  printf -- 'Destroying %s in 3 seconds... Ctrl+C to cancel\n' "${do_destroy__name}"
+  trap cancel_destroy INT TERM
+  sleep 3s || cancel_destroy
 
   # Name is forced, do double
   if [ "${do_destroy__name}" != "${do_destroy__cmd}" ]; then
