@@ -200,6 +200,7 @@ usage: bww [options] <program> [program-arguments]
   [JAIL]
   --forcename <name>          Force the jail to be named using the given name instead of adopting the program's name
   --destroy <name>            Destroy a jail by removing its jail home directory and script file if they exist
+  --private                   Create a temporary jail which mounts its \$HOME onto a tmpfs
 
   [MOUNT]
   --bind-if-exists <path>     Bind a path outside of jail to the same path in jail if the directory exists
@@ -365,6 +366,7 @@ main()
   # Loop and consume arguments until we can't anymore
   launch_shell=0
   destroy_jail=0
+  private_jail=0
   force_jail_name=""
   pre_opts=""
   binds=""
@@ -386,6 +388,13 @@ main()
         run_opts="${run_opts}
 --nodie"
         printf -- 'INFO: Child process will not die with bwrap. Must be killed manually.\n'
+        shift
+        ;;
+      --private)
+        private_jail=1
+        run_opts="${run_opts}
+--private"
+        printf -- 'INFO: Private jail requested, HOME is bound to nothing.\n'
         shift
         ;;
       --nodev)
@@ -688,6 +697,8 @@ $1"
   basejaildir="${HOME}/.bww"
   bindir="${basejaildir}/bin"
   jaildir="${basejaildir}/jails"
+
+  # Destroy first if requested
   if [ "${destroy_jail}" -ne 0 ]; then
     do_destroy "${bw_command}" "${jail_name}" "${bindir}" "${jaildir}" || return 1
     return 0
@@ -696,7 +707,11 @@ $1"
   # Put the $HOME for this program into a jailed directory.
   # To clean up the program and all traces of user configuration, just rm the jail or use --destroy
   jail="${jaildir}/${jail_name}"
-  make_jail "${jail}" "${bw_command}" || return 1
+
+  # Dont make the jail if its private
+  if [ "${private_jail}" -eq 0 ]; then
+    make_jail "${jail}" "${bw_command}" || return 1
+  fi
 
   # Always do this first, order matters
 
@@ -718,6 +733,10 @@ $1"
     __bw_opts="${__bw_opts}
   --dev-bind / /"
   fi
+
+  # robind sys
+  __bw_opts="${__bw_opts}
+  --ro-bind /sys /sys"
 
   # If we are marked as do-not-die, then don't add die-with-parent
   if has_option "die"; then
@@ -769,8 +788,16 @@ $1"
 
   # Restrict other homes
   block_in_jail "/home"
-  __bw_opts="${__bw_opts}
+
+  if [ "${private_jail}" -eq 0 ]; then
+    # Bind the jail directory to HOME
+    __bw_opts="${__bw_opts}
   --bind ${jail}/home ${HOME}"
+  else
+    # Bind the jail to a tmpfs
+    __bw_opts="${__bw_opts}
+  --tmpfs ${HOME}"
+  fi
 
   # Blacklist first
   block_in_jail "/boot"
@@ -807,8 +834,10 @@ $1"
 
   # Bind var
   robind_if_exists "/var"
-  __bw_opts="${__bw_opts}
+  if [ "${private_jail}" -eq 0 ]; then
+    __bw_opts="${__bw_opts}
   --bind ${jail}/var/tmp /var/tmp"
+  fi
 
   # For PulseAudio
   if has_option "audio"; then
