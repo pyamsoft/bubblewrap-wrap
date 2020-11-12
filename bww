@@ -801,6 +801,14 @@ $1"
 
   # Blacklist first
   block_in_jail "/boot"
+
+  # Blacklist any mass storage directories by default
+  block_in_jail "/storage"
+
+  # Preset read only binds
+  robind_if_exists "/usr"
+  robind_if_exists "/etc"
+
   block_in_jail "/usr/lib/modules-load.d"
   block_in_jail "/usr/lib/sysctl.d"
   block_in_jail "/usr/lib/systemd"
@@ -812,9 +820,6 @@ $1"
   # Not on every system (Debian for example)
   block_in_jail "/usr/lib/modules"
   block_in_jail "/usr/lib/modprobe.d"
-
-  # Blacklist any mass storage directories by default
-  block_in_jail "/storage"
 
   # Block /tmp access unless ignored
   if has_option "tmp"; then
@@ -961,10 +966,6 @@ $1"
     # Bind drirc if it exists as read-only
     robind_if_exists "${HOME}/.drirc"
   fi
-
-  # Preset read only binds
-  robind_if_exists "/usr"
-  robind_if_exists "/etc"
 
   # Extra binds
   for binding in ${binds}; do
