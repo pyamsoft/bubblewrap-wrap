@@ -734,30 +734,6 @@ $1"
   fi
 
   # Always do this first, order matters
-
-  # If the user wants access to devices, we can't make read only
-  if has_option "dev"; then
-    __bw_opts="${__bw_opts}
-  --ro-bind / /"
-
-    # If we fake dev, mount fake dev stuff
-    __bw_opts="${__bw_opts}
-  --dev /dev"
-
-      # If we are not sharing IPC, then we cannot mount a new mqueue
-    if has_option "ipc"; then
-      __bw_opts="${__bw_opts}
-  --mqueue /dev/mqueue"
-    fi
-  else
-    __bw_opts="${__bw_opts}
-  --dev-bind / /"
-  fi
-
-  # robind sys
-  __bw_opts="${__bw_opts}
-  --ro-bind /sys /sys"
-
   # If we are marked as do-not-die, then don't add die-with-parent
   if has_option "die"; then
     __bw_opts="${__bw_opts}
@@ -800,6 +776,29 @@ $1"
     __bw_opts="${__bw_opts}
   --cap-drop ALL"
   fi
+
+  # If the user wants access to devices, we can't make read only
+  if has_option "dev"; then
+    __bw_opts="${__bw_opts}
+  --ro-bind / /"
+
+    # If we fake dev, mount fake dev stuff
+    __bw_opts="${__bw_opts}
+  --dev /dev"
+
+      # If we are not sharing IPC, then we cannot mount a new mqueue
+    if has_option "ipc"; then
+      __bw_opts="${__bw_opts}
+  --mqueue /dev/mqueue"
+    fi
+  else
+    __bw_opts="${__bw_opts}
+  --dev-bind / /"
+  fi
+
+  # robind sys
+  __bw_opts="${__bw_opts}
+  --ro-bind /sys /sys"
 
   # Basically always meant to block /proc
   __bw_opts="${__bw_opts}
