@@ -620,7 +620,7 @@ main()
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
         run_opts="${run_opts}
-$1"
+--tmpfs $1"
         shift
         pre_opts="${pre_opts} $1"
         run_opts="${run_opts} $1"
@@ -632,6 +632,26 @@ $1"
         run_opts="${run_opts}
 --tmpfs=${split_arg}"
         unset split_arg
+        shift
+        ;;
+      --uid)
+        # should have 1 arguments, shift 1 more times
+        pre_opts="${pre_opts} $1"
+        run_opts="${run_opts}
+--uid $1"
+        shift
+        pre_opts="${pre_opts} $1"
+        run_opts="${run_opts} $1"
+        shift
+        ;;
+      --gid)
+        # should have 1 arguments, shift 1 more times
+        pre_opts="${pre_opts} $1"
+        run_opts="${run_opts}
+--gid $1"
+        shift
+        pre_opts="${pre_opts} $1"
+        run_opts="${run_opts} $1"
         shift
         ;;
       --setenv|--bind|--ro-bind)
@@ -1011,7 +1031,7 @@ $1"
 __bw_opts=""
 
 # Kernel does not support user namespaces yet
-__ignore_opts="user"
+__ignore_opts=""
 
 # bww
 # by: pyamsoft <developer(dot)pyamsoft(at)gmail(dot)com>
