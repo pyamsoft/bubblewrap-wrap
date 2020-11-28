@@ -367,6 +367,8 @@ main()
   launch_shell=0
   destroy_jail=0
   private_jail=0
+  apply_default_uid=1
+  apply_default_gid=1
   force_jail_name=""
   pre_opts=""
   binds=""
@@ -635,6 +637,7 @@ main()
         shift
         ;;
       --uid)
+        apply_default_uid=0
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
         run_opts="${run_opts}
@@ -645,6 +648,7 @@ main()
         shift
         ;;
       --gid)
+        apply_default_gid=0
         # should have 1 arguments, shift 1 more times
         pre_opts="${pre_opts} $1"
         run_opts="${run_opts}
@@ -801,6 +805,17 @@ $1"
   --cap-drop ALL"
   fi
 
+  if [ "${apply_default_uid}" -eq 1 ]; then
+    # Default to user=nobody
+    __bw_opts="${__bw_opts}
+  --uid 99"
+  fi
+
+  if [ "${apply_default_gid}" -eq 1 ]; then
+    # Default to group=nobody
+    __bw_opts="${__bw_opts}
+  --gid 99"
+  fi
 
   # Basically always meant to block /proc
   __bw_opts="${__bw_opts}
