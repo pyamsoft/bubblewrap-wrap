@@ -850,6 +850,9 @@ $1"
   block_in_jail "/run/lock"
   block_in_jail "/run/systemd"
 
+  # For systemd-homed
+  robind_if_exists "/run/systemd/userdb"
+
   # For systemd-resolved
   robind_if_exists "/run/systemd/resolve"
 
