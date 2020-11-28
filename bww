@@ -879,7 +879,9 @@ $1"
     if has_option "tmp"; then
       robind_if_exists "/tmp/.X11-unix/X0"
     fi
+
     robind_if_exists "/etc/X11"
+    robind_if_exists "/usr/share/X11"
 
     # Authorize clients to connect to Xserver
     robind_if_exists "${HOME}/.Xauthority"
