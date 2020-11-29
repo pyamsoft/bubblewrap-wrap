@@ -82,8 +82,8 @@ __bind_if_exists()
         __bw_opts="${__bw_opts}
   ${bind_command} ${real_path} ${real_path}"
       else
-        printf -- 'WARN: Unable to %s symlink %s, real path %s does not exist\n' \
-          "${bind_command}" "${bind_path}" "${real_path}"
+        printf -- 'WARN: Unable to %s symlink %s, real path %s does not exist\n' "${bind_command}" \
+          "${bind_path}" "${real_path}"
       fi
     fi
 
@@ -93,7 +93,8 @@ __bind_if_exists()
         __bw_opts="${__bw_opts}
   ${bind_command} ${bind_path} ${bind_path}"
       else
-        printf -- 'WARN: Unable to %s symlink at %s, lacking permission\n' "${bind_command}" "${bind_path}"
+        printf -- 'WARN: Unable to %s symlink at %s, lacking permission\n' "${bind_command}" \
+          "${bind_path}"
       fi
     else
       printf -- '%s in jail %s\n' "${bind_command}" "${bind_path}"
@@ -1010,15 +1011,13 @@ $1"
 
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
-    printf -- 'Run brwap: %s\n%s \n%s %s\n' "${__bw_opts}" "${pre_opts}" \
-      "${bw_command}" "$*"
+    printf -- 'Run brwap: %s\n%s \n%s %s\n' "${__bw_opts}" "${pre_opts}" "${bw_command}" "$*"
 
     # shellcheck disable=SC2086
     exec bwrap ${__bw_opts} ${pre_opts} "${bw_command}" "$@" || return 1
   else
     # Launch bash into the program's jail
-    printf -- 'Run brwap: %s\n%s /usr/bin/env bash\n' \
-      "${__bw_opts}" "${pre_opts}"
+    printf -- 'Run brwap: %s\n%s /usr/bin/env bash\n' "${__bw_opts}" "${pre_opts}"
 
     # shellcheck disable=SC2086
     exec bwrap ${__bw_opts} ${pre_opts} /usr/bin/env bash || return 1
