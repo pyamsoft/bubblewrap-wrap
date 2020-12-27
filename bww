@@ -864,13 +864,21 @@ $1"
   # Block the /run directory
   block_in_jail "/run"
   block_in_jail "/run/lock"
-  block_in_jail "/run/systemd"
 
-  # For systemd-homed
-  robind_if_exists "/run/systemd/userdb"
+  # Any program which relies on systemd
+  if ! has_option "nosystemd"; then
+    # Bind systemd socket
+    bind_if_exists "/run/systemd"
+  else
+    block_in_jail "/run/systemd"
 
-  # For systemd-resolved
-  robind_if_exists "/run/systemd/resolve"
+    # For systemd-homed
+    robind_if_exists "/run/systemd/userdb"
+
+    # For systemd-resolved
+    robind_if_exists "/run/systemd/resolve"
+
+  fi
 
   # Bind the real user directory
   bind_if_exists "/run/user/$(id -u)"
@@ -952,12 +960,6 @@ $1"
     robind_if_exists "${HOME}/.local/share/gvfs-metadata"
   else
     block_in_jail "/run/user/$(id -u)/gvfs"
-  fi
-
-  # Any program which relies on systemd
-  if ! has_option "nosystemd"; then
-    # Bind systemd socket
-    bind_if_exists "/run/systemd"
   fi
 
   # Any program which relies on v4l
