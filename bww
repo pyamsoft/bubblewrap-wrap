@@ -20,6 +20,14 @@
 
 # bubblewrap-wrap
 
+readonly APP_NAME="bww"
+readonly VERSION="0.0.8"
+
+print_version() {
+  printf -- '%s [%s]\n' "${APP_NAME}" "${VERSION}"
+  return 0
+}
+
 ##
 # Split a long option with embedded equals (=) and return the argument
 # $1 option name
@@ -182,9 +190,10 @@ has_option() {
 usage() {
   usage__all="$1"
 
+  print_version || return 1
   printf -- '%s\n\n' "$(
     cat <<EOF
-usage: bww [options] <program> [program-arguments]
+usage: ${APP_NAME} [options] <program> [program-arguments]
 
   [HELP]
   --help                      Display this help
@@ -326,12 +335,12 @@ do_destroy() {
     rm_me "${do_destroy__jail}/${do_destroy__cmd}" 1 || return 1
     rm_me "${do_destroy__bin}/${do_destroy__name}" || return 1
     rm_me "${do_destroy__jail}/${do_destroy__name}" 1 || return 1
-    printf -- 'bww jail for %s was destroyed\n' "${do_destroy__cmd}"
-    printf -- 'bww jail for %s was destroyed\n' "${do_destroy__name}"
+    printf -- '%s jail for %s was destroyed\n' "${APP_NAME}" "${do_destroy__cmd}"
+    printf -- '%s jail for %s was destroyed\n' "${APP_NAME}" "${do_destroy__name}"
   else
     rm_me "${do_destroy__bin}/${do_destroy__cmd}" || return 1
     rm_me "${do_destroy__jail}/${do_destroy__cmd}" 1 || return 1
-    printf -- 'bww jail for %s was destroyed\n' "${do_destroy__cmd}"
+    printf -- '%s jail for %s was destroyed\n' "${APP_NAME}" "${do_destroy__cmd}"
   fi
 
   unset do_destroy__confirm
@@ -363,6 +372,10 @@ main() {
   run_opts=""
   while :; do
     case "$1" in
+    --version)
+      print_version || return 1
+      return 0
+      ;;
     --help)
       usage || return 1
       return 0
@@ -690,9 +703,8 @@ $1"
   done
 
   # Shorten the command to just the basename
-  if [ "$(basename "$0")" = "bww" ]; then
+  if [ "$(basename "$0")" = "${APP_NAME}" ]; then
     if [ -z "$1" ]; then
-      printf -- 'Must specify a command\n'
       usage || return 1
       return 1
     fi
@@ -718,7 +730,7 @@ $1"
     jail_name="${short_command}"
   fi
 
-  basejaildir="${HOME}/.bww"
+  basejaildir="${HOME}/.${APP_NAME}"
   bindir="${basejaildir}/bin"
   jaildir="${basejaildir}/jails"
 
@@ -1009,7 +1021,7 @@ $1"
   unset devbinds
 
   if [ -n "${run_opts}" ]; then
-    printf -- '\nbww with options: %s\n\n' "${run_opts}"
+    printf -- '\n%s with options: %s\n\n' "${APP_NAME}" "${run_opts}"
   fi
 
   if [ "${launch_shell}" -eq 0 ]; then
