@@ -22,6 +22,7 @@
 
 readonly APP_NAME="bww"
 readonly VERSION="0.0.8"
+readonly BWRAP="bwrap"
 
 print_version() {
   printf -- '%s [%s]\n' "${APP_NAME}" "${VERSION}"
@@ -197,7 +198,7 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
 
   [HELP]
   --help                      Display this help
-  --help-all                  Display this help, and bwrap --help
+  --help-all                  Display this help, and ${BWRAP} --help
 
   [JAIL]
   --forcename <name>          Force the jail to be named using the given name instead of adopting the program's name
@@ -244,7 +245,7 @@ EOF
 
   # Extended help
   if [ -n "${usage__all}" ] && [ "${usage__all}" -ne 0 ]; then
-    bwrap --help || return 1
+    "${BWRAP}" --help || return 1
   fi
 
   return 0
@@ -352,8 +353,8 @@ do_destroy() {
 }
 
 main() {
-  if ! command -v bwrap >/dev/null 2>&1; then
-    printf -- 'bwrap is not installed.\n'
+  if ! command -v "${BWRAP}" >/dev/null 2>&1; then
+    printf -- '%s is not installed.\n' "${BWRAP}"
     return 1
   fi
 
@@ -388,7 +389,7 @@ main() {
       __ignore_opts="${__ignore_opts} die"
       run_opts="${run_opts}
 --nodie"
-      printf -- 'INFO: Child process will not die with bwrap. Must be killed manually.\n'
+      printf -- 'INFO: Child process will not die with %s. Must be killed manually.\n' "${BWRAP}"
       shift
       ;;
     --private)
@@ -1026,16 +1027,16 @@ $1"
 
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
-    printf -- 'Run brwap: %s\n%s \n%s %s\n' "${__bw_opts}" "${pre_opts}" "${bw_command}" "$*"
+    printf -- 'Run %s: %s\n%s \n%s %s\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}" "${bw_command}" "$*"
 
     # shellcheck disable=SC2086
-    exec bwrap ${__bw_opts} ${pre_opts} "${bw_command}" "$@" || return 1
+    exec "${BWRAP}" ${__bw_opts} ${pre_opts} "${bw_command}" "$@" || return 1
   else
     # Launch bash into the program's jail
-    printf -- 'Run brwap: %s\n%s /usr/bin/env bash\n' "${__bw_opts}" "${pre_opts}"
+    printf -- 'Run %s: %s\n%s /usr/bin/env bash\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}"
 
     # shellcheck disable=SC2086
-    exec bwrap ${__bw_opts} ${pre_opts} /usr/bin/env bash || return 1
+    exec "${BWRAP}" ${__bw_opts} ${pre_opts} /usr/bin/env bash || return 1
   fi
 
   unset __bw_opts
