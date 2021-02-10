@@ -21,7 +21,7 @@
 # bubblewrap-wrap
 
 readonly APP_NAME="bww"
-readonly VERSION="0.0.8"
+readonly VERSION="0.0.9"
 readonly BWRAP="bwrap"
 
 print_version() {
@@ -846,11 +846,9 @@ $1"
 
   block_in_jail "/usr/lib/modules-load.d"
   block_in_jail "/usr/lib/sysctl.d"
-  block_in_jail "/usr/lib/systemd"
   block_in_jail "/etc/modules-load.d"
   block_in_jail "/etc/modprobe.d"
   block_in_jail "/etc/sysctl.d"
-  block_in_jail "/etc/systemd"
 
   # Not on every system (Debian for example)
   block_in_jail "/usr/lib/modules"
@@ -878,6 +876,9 @@ $1"
     # For systemd-resolved
     robind_if_exists "/run/systemd/resolve"
 
+    # Block systemd configuration directories
+    block_in_jail "/usr/lib/systemd"
+    block_in_jail "/etc/systemd"
   fi
 
   # Bind the real user directory
