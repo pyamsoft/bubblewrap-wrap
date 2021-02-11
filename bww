@@ -225,7 +225,7 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   [FEATURE]
   --nodev                     Do not sandbox /dev, use real /dev
   --notmp                     Do not sandbox /tmp, use real /tmp
-  --noaudio                   Do not allow pulseaudio in jail
+  --noaudio                   Do not allow pulseaudio/pipewire in jail
   --nodrop                    Do not drop capabilities after launch
   --nox11                     Do not bind X11 socket
   --nodbus                    Do not bind dbus daemon socket
@@ -417,7 +417,7 @@ main() {
       __ignore_opts="${__ignore_opts} audio"
       run_opts="${run_opts}
 --noaudio"
-      printf -- 'INFO: PulseAudio not allowed in jail\n'
+      printf -- 'INFO: PulseAudio/PipeWire not allowed in jail\n'
       shift
       ;;
     --nouser)
@@ -894,9 +894,12 @@ $1"
   # For PulseAudio
   if has_option "audio"; then
     robind_if_exists "${HOME}/.config/pulse"
+    robind_if_exists "${HOME}/.config/pipewire-media-session"
     devbind_if_exists "/dev/snd"
   else
     block_in_jail "/run/user/$(id -u)/pulse"
+    block_in_jail "/run/user/$(id -u)/pipewire-0"
+    block_in_jail "/run/user/$(id -u)/pipewire-0.lock"
     block_in_jail "/dev/snd"
   fi
 
