@@ -750,6 +750,8 @@ $1"
     make_jail "${jail}" "${bw_command}" || return 1
   fi
 
+  # bwrap time ----
+
   # Always do this first, order matters
   # If we are marked as do-not-die, then don't add die-with-parent
   if has_option "die"; then
@@ -821,19 +823,6 @@ $1"
   __bw_opts="${__bw_opts}
   --proc /proc"
 
-  # Restrict other homes
-  block_in_jail "/home"
-
-  if [ "${private_jail}" -eq 0 ]; then
-    # Bind the jail directory to HOME
-    __bw_opts="${__bw_opts}
-  --bind ${jail}/home ${HOME}"
-  else
-    # Bind the jail to a tmpfs
-    __bw_opts="${__bw_opts}
-  --tmpfs ${HOME}"
-  fi
-
   # Blacklist first
   block_in_jail "/boot"
 
@@ -844,7 +833,15 @@ $1"
   robind_if_exists "/usr"
   robind_if_exists "/etc"
 
+  # Bind var
+  robind_if_exists "/var"
+  if [ "${private_jail}" -eq 0 ]; then
+    __bw_opts="${__bw_opts}
+  --bind ${jail}/var/tmp /var/tmp"
+  fi
+
   block_in_jail "/usr/lib/modules-load.d"
+  block_in_jail "/usr/lib/modprobe.d"
   block_in_jail "/usr/lib/sysctl.d"
   block_in_jail "/etc/modules-load.d"
   block_in_jail "/etc/modprobe.d"
@@ -859,54 +856,67 @@ $1"
     block_in_jail "/tmp"
   fi
 
+  # Restrict other homes
+  block_in_jail "/home"
+
+  if [ "${private_jail}" -eq 0 ]; then
+    # Bind the jail directory to HOME
+    __bw_opts="${__bw_opts}
+  --bind ${jail}/home ${HOME}"
+  else
+    # Bind the jail to a tmpfs
+    __bw_opts="${__bw_opts}
+  --tmpfs ${HOME}"
+  fi
+
   # Block the /run directory
   block_in_jail "/run"
   block_in_jail "/run/lock"
+  block_in_jail "/run/user/$(id -u)"
 
   # Any program which relies on systemd
   if ! has_option "nosystemd"; then
+    robind_if_exists "${HOME}/.config/systemd"
+
     # Bind systemd socket
-    bind_if_exists "/run/systemd"
+    robind_if_exists "/run/systemd"
+
+    robind_if_exists "/run/user/$(id -u)/systemd"
+
+    robind_if_exists "/usr/lib/systemd"
+    robind_if_exists "/etc/systemd"
   else
     block_in_jail "/run/systemd"
+
+    # Block systemd configuration directories
+    block_in_jail "/usr/lib/systemd"
+    block_in_jail "/etc/systemd"
 
     # For systemd-homed
     robind_if_exists "/run/systemd/userdb"
 
     # For systemd-resolved
     robind_if_exists "/run/systemd/resolve"
-
-    # Block systemd configuration directories
-    block_in_jail "/usr/lib/systemd"
-    block_in_jail "/etc/systemd"
-  fi
-
-  # Bind the real user directory
-  bind_if_exists "/run/user/$(id -u)"
-
-  # Bind var
-  robind_if_exists "/var"
-  if [ "${private_jail}" -eq 0 ]; then
-    __bw_opts="${__bw_opts}
-  --bind ${jail}/var/tmp /var/tmp"
   fi
 
   # For PulseAudio
   if has_option "audio"; then
     robind_if_exists "${HOME}/.config/pulse"
     robind_if_exists "${HOME}/.config/pipewire-media-session"
+
+    robind_if_exists /run/lock/asound*
+    robind_if_exists "/run/user/$(id -u)/"pulse*
+    robind_if_exists "/run/user/$(id -u)/"pipewire*
+
     devbind_if_exists "/dev/snd"
   else
-    block_in_jail "/run/user/$(id -u)/pulse"
-    block_in_jail "/run/user/$(id -u)/pipewire-0"
-    block_in_jail "/run/user/$(id -u)/pipewire-0.lock"
     block_in_jail "/dev/snd"
   fi
 
   # Bind X11 socket
   if has_option "x11"; then
     if has_option "tmp"; then
-      robind_if_exists "/tmp/.X11-unix/X0"
+      robind_if_exists "/tmp/.X11-unix/"
     fi
 
     robind_if_exists "/etc/X11"
@@ -914,44 +924,47 @@ $1"
 
     # Authorize clients to connect to Xserver
     robind_if_exists "${HOME}/.Xauthority"
+  else
+    block_in_jail "/etc/X11"
+    block_in_jail "/usr/share/X11"
+    block_in_jail "/tmp/.X11-unix/"
   fi
 
   # If we have a dbus entry in the user run dir
   if has_option "dbus"; then
-    bind_if_exists "/run/dbus"
-    bind_if_exists "${HOME}/.dbus"
-  else
-    block_in_jail "/run/user/$(id -u)/bus"
-    block_in_jail "/run/user/$(id -u)/dbus-1"
+    robind_if_exists "${HOME}/.dbus"
+
+    robind_if_exists "/run/dbus"
+    robind_if_exists "/run/user/$(id -u)/bus"
+    robind_if_exists "/run/user/$(id -u)/"dbus*
   fi
 
   # Any program which relies on dconf
   if ! has_option "nodconf"; then
     robind_if_exists "${HOME}/.config/dconf"
-  else
-    block_in_jail "/run/user/$(id -u)/dconf"
+
+    robind_if_exists "/run/user/$(id -u)/dconf"
   fi
 
   # Any program which relies on gnome-keyring
   if ! has_option "nokeyring"; then
     robind_if_exists "${HOME}/.local/share/keyrings"
-  else
-    block_in_jail "/run/user/$(id -u)/keyring"
+
+    robind_if_exists "/run/user/$(id -u)/keyring"
   fi
 
   # Any program which relies on gnupg
   if ! has_option "nogpg"; then
     robind_if_exists "${HOME}/.gnupg"
-  else
-    block_in_jail "/run/user/$(id -u)/gnupg"
+
+    robind_if_exists "/run/user/$(id -u)/gnupg"
   fi
 
   # Any program which relies on polkit and p11-kit
   if ! has_option "nop11"; then
     # No user polkit files that I know of
-    true
+    robind_if_exists "/run/user/$(id -u)/p11-kit"
   else
-    block_in_jail "/run/user/$(id -u)/p11-kit"
     block_in_jail "/etc/pkcs11"
     block_in_jail "/etc/polkit-1"
     block_in_jail "/usr/share/polkit-1"
@@ -962,8 +975,13 @@ $1"
   if ! has_option "nogvfs"; then
     robind_if_exists "${HOME}/.gvfs"
     robind_if_exists "${HOME}/.local/share/gvfs-metadata"
+
+    robind_if_exists "/usr/lib/gvfs"
+    robind_if_exists "/usr/share/gvfs"
+    robind_if_exists "/run/user/$(id -u)/gvfs"
   else
-    block_in_jail "/run/user/$(id -u)/gvfs"
+    block_in_jail "/usr/lib/gvfs"
+    block_in_jail "/usr/share/gvfs"
   fi
 
   # Any program which relies on v4l
@@ -973,28 +991,27 @@ $1"
       devbind_if_exists "/dev/v4l"
       devbind_if_exists /dev/video*
     fi
+  else
+    block_in_jail "/dev/v4l"
+    block_in_jail /dev/video*
   fi
 
   # Any theme related dirs
   if has_option "themes"; then
-    robind_if_exists "/etc/gtk-2.0"
-    robind_if_exists "/etc/gtk-3.0"
-    robind_if_exists "${HOME}/.config/user-dirs.dirs"
-    robind_if_exists "${HOME}/.config/user-dirs.locale"
+    robind_if_exists "${HOME}/.config/"user-dirs*
     robind_if_exists "${HOME}/.config/Trolltech.conf"
     robind_if_exists "${HOME}/.config/Kvantum"
     robind_if_exists "${HOME}/.config/qt5ct"
     robind_if_exists "${HOME}/.config/kdeglobals"
-    robind_if_exists "${HOME}/.gtkrc"
-    robind_if_exists "${HOME}/.gtkrc-2.0"
-    robind_if_exists "${HOME}/.config/gtk-2.0"
-    robind_if_exists "${HOME}/.config/gtk-3.0"
+    robind_if_exists "${HOME}/".gtkrc*
+    robind_if_exists "${HOME}/.config/"gtk*
     robind_if_exists "${HOME}/.fonts"
     robind_if_exists "${HOME}/.fonts.conf"
     robind_if_exists "${HOME}/.config/fontconfig"
+
+    robind_if_exists "/etc/"gtk*
   else
-    block_in_jail "/etc/gtk-2.0"
-    block_in_jail "/etc/gtk-3.0"
+    block_in_jail "/etc/"gtk*
   fi
 
   # Bind the mesa caches so they are not re-created for each jail
@@ -1003,14 +1020,18 @@ $1"
       devbind_if_exists "/dev/dri"
     fi
 
+    # Create a shared shader-cache directory
     mkdir -p "${HOME}/.cache/mesa_shader_cache" || {
       printf -- 'Failed prepping mesa_shader_cache cache directory\n'
       return 1
     }
     bind_if_exists "${HOME}/.cache/mesa_shader_cache"
 
-    # Bind drirc if it exists as read-only
     robind_if_exists "${HOME}/.drirc"
+    robind_if_exists "/usr/share/drirc.d"
+  else
+    block_in_jail "/dev/dri"
+    block_in_jail "/usr/share/drirc.d"
   fi
 
   # Extra binds
