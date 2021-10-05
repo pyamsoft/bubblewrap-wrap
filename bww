@@ -1076,7 +1076,8 @@ $1"
 __bw_opts=""
 
 # Kernel does not support user namespaces yet
-__ignore_opts=""
+# X11 requires IPC sharing
+__ignore_opts="ipc"
 
 # bww
 # by: pyamsoft <developer(dot)pyamsoft(at)gmail(dot)com>
