@@ -1010,6 +1010,16 @@ $1"
     robind_if_exists "${HOME}/.config/fontconfig"
 
     robind_if_exists "/etc/"gtk*
+
+    if [ -n "${QT_QPA_PLATFORMTHEME}" ]; then
+      __bw_opts="${__bw_opts}
+  --setenv QT_QPA_PLATFORMTHEME ${QT_QPA_PLATFORMTHEME}"
+    fi
+
+    if [ -n "${QT_STYLE_OVERRIDE}" ]; then
+      __bw_opts="${__bw_opts}
+  --setenv QT_STYLE_OVERRIDE ${QT_STYLE_OVERRIDE}"
+    fi
   else
     block_in_jail "/etc/"gtk*
   fi
