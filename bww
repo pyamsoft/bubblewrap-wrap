@@ -1020,6 +1020,16 @@ $1"
       __bw_opts="${__bw_opts}
   --setenv QT_STYLE_OVERRIDE ${QT_STYLE_OVERRIDE}"
     fi
+
+    if [ -n "${XDG_CONFIG_DIRS}" ]; then
+      __bw_opts="${__bw_opts}
+  --setenv XDG_CONFIG_DIRS ${XDG_CONFIG_DIRS}"
+    fi
+
+    if [ -n "${XDG_DATA_DIRS}" ]; then
+      __bw_opts="${__bw_opts}
+  --setenv XDG_DATA_DIRS ${XDG_DATA_DIRS}"
+    fi
   else
     block_in_jail "/etc/"gtk*
   fi
