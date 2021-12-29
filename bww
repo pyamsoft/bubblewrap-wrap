@@ -1049,9 +1049,11 @@ $1"
 
     robind_if_exists "${HOME}/.drirc"
     robind_if_exists "/usr/share/drirc.d"
+    robind_if_exists "/usr/lib/dri"
   else
     block_in_jail "/dev/dri"
     block_in_jail "/usr/share/drirc.d"
+    block_in_jail "/usr/lib/dri"
   fi
 
   # Extra binds
