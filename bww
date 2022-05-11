@@ -903,6 +903,7 @@ $1"
   if has_option "audio"; then
     robind_if_exists "${HOME}/.config/pulse"
     robind_if_exists "${HOME}/.config/pipewire-media-session"
+    robind_if_exists "${HOME}/.config/pipewire"
 
     robind_if_exists /run/lock/asound*
     robind_if_exists "/run/user/$(id -u)/"pulse*
