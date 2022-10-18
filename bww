@@ -1004,6 +1004,10 @@ $1"
     robind_if_exists "${HOME}/.config/Kvantum"
     robind_if_exists "${HOME}/.config/qt5ct"
     robind_if_exists "${HOME}/.config/kdeglobals"
+    robind_if_exists "${HOME}/.config/gtkrc"
+    robind_if_exists "${HOME}/.config/gtkrc-2.0"
+    robind_if_exists "${HOME}/.config/gtk-3.0"
+    robind_if_exists "${HOME}/.config/gtk-4.0"
     robind_if_exists "${HOME}/".gtkrc*
     robind_if_exists "${HOME}/.config/"gtk*
     robind_if_exists "${HOME}/.fonts"
