@@ -723,12 +723,6 @@ $1"
   # eat argument
   shift
 
-  if ! command -v "${bw_command}" >/dev/null 2>&1; then
-    printf -- 'Invalid command: %s\n' "${bw_command}"
-    usage || return 1
-    return 1
-  fi
-
   jail_name=""
   if [ -n "${force_jail_name}" ]; then
     jail_name="${force_jail_name}"
