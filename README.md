@@ -1,8 +1,7 @@
 # bubblewrap-wrap
 
 A wrapper around [bubblewrap](https://github.com/projectatomic/bubblewrap)
-to make it a bit easier to use with normal desktop
-programs.
+to make it a bit easier to use with normal desktop programs.
 
 ## What is this for
 
@@ -11,32 +10,25 @@ bubblewrap-wrap is meant to address this particular case: https://xkcd.com/1200/
 Modern environments have most of the actual important user information held in
 the same user home directory which is exposed to any program run by the user.
 
-Effectively, this is a script which uses bubblewrap to isolate the HOME
-directory for an untrusted running process. While the script may provide a
-general secure sandbox environment, the first and only goal is to make it
-as painless as possible to isolate userspace non-privileged programs from each
-other.
+This script uses `bwrap` to create an isolated "HOME" directory per program.
+called a `jail`. It trades absolute security for ease of use and should generally
+work with most programs out of the box. Unlike a true container, a program run with
+`bww` has a read-only view of the host system (some directories are blocked),
+but does have things like special namespacing.
 
-Each program run using `bww` will have its own, isolated home directory and a
-readonly view of the host filesystem. It will inherit the host theme
-configuration and will be unable to modify the theme configuration in its
-isolated environment.
-
-bubblewrap-wrap trades absolute security for ease of use by design - things
-like PulseAudio and the X11 socket are exposed by default to make normal
-programs easier to use, thus the wrapper is no more secure than runing a
-program normally under a normal environment.
-
-One advantage of isolating the home of each program however is that programs
-will not be able to see the other configuration and related files that you
-store on the machine, and cleaning up any installed program is as simple as
-deleting its own specific directory instead of having to hunt through each
-folder in your user directory for configuration specific files.
+The advantage of `bww` is that running a program will not pollute the real home
+directory, and all configuration files can be deleted simply by removing the `jail`
+directory. `bww` is not a replacement for a Flatpak. You should always elect to use
+a Flatpak version of a program if one exists. `bww` is expected to run with interactive
+GUI programs, and comes with support for things like X11 and PulseAudio by default. For
+server applications, you should use `docker` or another container solution.
 
 By default, `bww` makes use of bubblewrap's ability to have split namespaces
-for processes, uts, and also hides the `/dev` `/proc` and `/tmp` folders. It also
-launches each program in a new session, and exposes the `dbus` and `pulseaudio`
-sockets, as well as providing the option to expose the `dconf` socket.
+for processes, uts, and also hides the `/dev` `/proc` and `/tmp` folders.
+
+You can share folders outside of the `jail` using the options `--bind-if-exists`. As the
+name suggests, the folder will not be created for you, and will only be shared if it already
+exists.
 
 ## Usage
 
@@ -53,8 +45,20 @@ is up to the user to configure the `$HOME/.bww/bin` directory to be on the `$PAT
 these defaults:
 
 Jailed programs will live in `$HOME/.bww/jails/<program>` and `bwrapper` generated
-scripts will live in `$HOME/.bww/bin`. The `$HOME/.bww/jails` directory will be created for
-you if it does not exist.
+scripts will live in `$HOME/.bww/bin`.
+
+The `$HOME/.bww/jails` directory will be created for you if it does not exist.
+
+## Troubleshooting
+
+Not every program will work with `bww` due to its slightly more restrictive nature.
+If you find a program that does not work, simple possible fixes are things like
+the option `--nodrop`, which will not drop the Linux capabilities that some programs
+expect to be present, the option `--nodev` which grants access to the real `/dev`
+folder, the option `--notmp` which grants access to the real `/tmp` folder, or
+sometimes feature flags like `--p11`, `--gvfs`, `--systemd`, or `--dconf`. Each
+program is specific and you will need to try various options out. You may also need
+to mount directories via `--bind-if-exists`.
 
 ## License
 

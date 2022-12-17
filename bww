@@ -203,7 +203,6 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   [JAIL]
   --forcename <name>          Force the jail to be named using the given name instead of adopting the program's name
   --destroy <name>            Destroy a jail by removing its jail home directory and script file if they exist
-  --private                   Create a temporary jail which mounts its \$HOME onto a tmpfs
 
   [MOUNT]
   --bind-if-exists <path>     Bind a path outside of jail to the same path in jail if the directory exists
@@ -213,7 +212,6 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   [SESSION]
   --nodie                     Do not die with parent, useful for programs that fork
   --nosession                 Do not create a new session (for CLI applications)
-  --shell                     Launch bash inside of the jail instead of running the program itself
 
   [NAMESPACE]
   --nouser                    Do not perform user namespace sandboxing
@@ -222,16 +220,19 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   --nouts                     Do not perform uts namespace sandboxing
   --nocgroup                  Do not perform cgroup namespace sandboxing
 
-  [FEATURE]
+  [SECURITY]
   --nodev                     Do not sandbox /dev, use real /dev
   --notmp                     Do not sandbox /tmp, use real /tmp
-  --noaudio                   Do not allow pulseaudio/pipewire in jail
   --nodrop                    Do not drop capabilities after launch
+
+  [FEATURE]
+  --noaudio                   Do not allow pulseaudio/pipewire in jail
   --nox11                     Do not bind X11 socket
   --nodbus                    Do not bind dbus daemon socket
   --nogl                      Do not allow 3D graphics in jail
   --nothemes                  Do not adopt existing desktop themes for GTK and QT
 
+  [ALLOW]
   --v4l                       Allow access to v4l devices
   --systemd                   Allow access to systemd from jail
   --dconf                     Allow access to dconf from jail
@@ -239,6 +240,10 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   --gpg                       Allow access to gnupg from jail
   --p11                       Allow access to polkit from jail
   --gvfs                      Allow access to GVFS from jail
+
+  [DEBUG]
+  --private                   Create a temporary jail which mounts its \$HOME onto a tmpfs
+  --shell                     Launch bash inside of the jail instead of running the program itself
 
 EOF
   )" || return 1
