@@ -21,7 +21,7 @@
 # bubblewrap-wrap
 
 readonly APP_NAME="bww"
-readonly VERSION="0.0.9"
+readonly VERSION="0.0.10"
 readonly BWRAP="bwrap"
 
 print_version() {
