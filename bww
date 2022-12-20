@@ -24,6 +24,12 @@ readonly APP_NAME="bww"
 readonly VERSION="0.0.10"
 readonly BWRAP="bwrap"
 
+# Support XDG directories
+readonly XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+readonly XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
+readonly XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+readonly XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
 print_version() {
   printf -- '%s [%s]\n' "${APP_NAME}" "${VERSION}"
   return 0
@@ -871,16 +877,16 @@ $1"
   # Block the /run directory
   block_in_jail "/run"
   block_in_jail "/run/lock"
-  block_in_jail "/run/user/$(id -u)"
+  block_in_jail "${XDG_RUNTIME_DIR}"
 
   # Any program which relies on systemd
   if ! has_option "nosystemd"; then
-    robind_if_exists "${HOME}/.config/systemd"
+    robind_if_exists "${XDG_CONFIG_HOME}/systemd"
 
     # Bind systemd socket
     robind_if_exists "/run/systemd"
 
-    robind_if_exists "/run/user/$(id -u)/systemd"
+    robind_if_exists "${XDG_RUNTIME_DIR}/systemd"
 
     robind_if_exists "/usr/lib/systemd"
     robind_if_exists "/etc/systemd"
@@ -900,13 +906,13 @@ $1"
 
   # For PulseAudio
   if has_option "audio"; then
-    robind_if_exists "${HOME}/.config/pulse"
-    robind_if_exists "${HOME}/.config/pipewire-media-session"
-    robind_if_exists "${HOME}/.config/pipewire"
+    robind_if_exists "${XDG_CONFIG_HOME}/pulse"
+    robind_if_exists "${XDG_CONFIG_HOME}/pipewire-media-session"
+    robind_if_exists "${XDG_CONFIG_HOME}/pipewire"
 
     robind_if_exists /run/lock/asound*
-    robind_if_exists "/run/user/$(id -u)/"pulse*
-    robind_if_exists "/run/user/$(id -u)/"pipewire*
+    robind_if_exists "${XDG_RUNTIME_DIR}/"pulse*
+    robind_if_exists "${XDG_RUNTIME_DIR}/"pipewire*
 
     devbind_if_exists "/dev/snd"
   else
@@ -935,35 +941,37 @@ $1"
     robind_if_exists "${HOME}/.dbus"
 
     robind_if_exists "/run/dbus"
-    robind_if_exists "/run/user/$(id -u)/bus"
-    robind_if_exists "/run/user/$(id -u)/"dbus*
+    robind_if_exists "${XDG_RUNTIME_DIR}/bus"
+    robind_if_exists "${XDG_RUNTIME_DIR}/"dbus*
   fi
 
   # Any program which relies on dconf
   if ! has_option "nodconf"; then
-    robind_if_exists "${HOME}/.config/dconf"
-
-    robind_if_exists "/run/user/$(id -u)/dconf"
+    robind_if_exists "${XDG_CONFIG_HOME}/dconf"
+    robind_if_exists "${XDG_RUNTIME_DIR}/dconf"
   fi
 
   # Any program which relies on gnome-keyring
   if ! has_option "nokeyring"; then
-    robind_if_exists "${HOME}/.local/share/keyrings"
-
-    robind_if_exists "/run/user/$(id -u)/keyring"
+    robind_if_exists "${XDG_DATA_HOME}/keyrings"
+    robind_if_exists "${XDG_RUNTIME_DIR}/keyring"
   fi
 
   # Any program which relies on gnupg
   if ! has_option "nogpg"; then
     robind_if_exists "${HOME}/.gnupg"
+    robind_if_exists "${XDG_RUNTIME_DIR}/gnupg"
 
-    robind_if_exists "/run/user/$(id -u)/gnupg"
+    # Custom location
+    if [ -n "${GNUPGHOME}" ]; then
+      robind_if_exists "${GNUPGHOME}"
+    fi
   fi
 
   # Any program which relies on polkit and p11-kit
   if ! has_option "nop11"; then
     # No user polkit files that I know of
-    robind_if_exists "/run/user/$(id -u)/p11-kit"
+    robind_if_exists "${XDG_RUNTIME_DIR}/p11-kit"
   else
     block_in_jail "/etc/pkcs11"
     block_in_jail "/etc/polkit-1"
@@ -974,11 +982,11 @@ $1"
   # Any program which relies on GVFS
   if ! has_option "nogvfs"; then
     robind_if_exists "${HOME}/.gvfs"
-    robind_if_exists "${HOME}/.local/share/gvfs-metadata"
+    robind_if_exists "${XDG_DATA_HOME}/gvfs-metadata"
 
     robind_if_exists "/usr/lib/gvfs"
     robind_if_exists "/usr/share/gvfs"
-    robind_if_exists "/run/user/$(id -u)/gvfs"
+    robind_if_exists "${XDG_RUNTIME_DIR}/gvfs"
   else
     block_in_jail "/usr/lib/gvfs"
     block_in_jail "/usr/share/gvfs"
@@ -998,43 +1006,43 @@ $1"
 
   # Any theme related dirs
   if has_option "themes"; then
-    robind_if_exists "${HOME}/.config/"user-dirs*
-    robind_if_exists "${HOME}/.config/Trolltech.conf"
-    robind_if_exists "${HOME}/.config/Kvantum"
-    robind_if_exists "${HOME}/.config/qt5ct"
-    robind_if_exists "${HOME}/.config/qt6ct"
-    robind_if_exists "${HOME}/.config/kdeglobals"
-    robind_if_exists "${HOME}/.config/gtkrc"
-    robind_if_exists "${HOME}/.config/gtkrc-2.0"
-    robind_if_exists "${HOME}/.config/gtk-3.0"
-    robind_if_exists "${HOME}/.config/gtk-4.0"
-    robind_if_exists "${HOME}/".gtkrc*
-    robind_if_exists "${HOME}/.config/"gtk*
+    # XDG
+    robind_if_exists "${XDG_CONFIG_HOME}/"user-dirs*
+    if [ -n "${XDG_CONFIG_DIRS}" ]; then
+      __bw_opts="${__bw_opts}
+  --setenv XDG_CONFIG_DIRS ${XDG_CONFIG_DIRS}"
+    fi
+    if [ -n "${XDG_DATA_DIRS}" ]; then
+      __bw_opts="${__bw_opts}
+  --setenv XDG_DATA_DIRS ${XDG_DATA_DIRS}"
+    fi
+
+    # Fonts
     robind_if_exists "${HOME}/.fonts"
     robind_if_exists "${HOME}/.fonts.conf"
-    robind_if_exists "${HOME}/.config/fontconfig"
+    robind_if_exists "${XDG_CONFIG_HOME}/fontconfig"
 
-    robind_if_exists "/etc/"gtk*
-
+    # QT/KDE
+    robind_if_exists "${XDG_CONFIG_HOME}/Trolltech.conf"
+    robind_if_exists "${XDG_CONFIG_HOME}/Kvantum"
+    robind_if_exists "${XDG_CONFIG_HOME}/"qt*ct
+    robind_if_exists "${XDG_CONFIG_HOME}/kdeglobals"
     if [ -n "${QT_QPA_PLATFORMTHEME}" ]; then
       __bw_opts="${__bw_opts}
   --setenv QT_QPA_PLATFORMTHEME ${QT_QPA_PLATFORMTHEME}"
     fi
-
     if [ -n "${QT_STYLE_OVERRIDE}" ]; then
       __bw_opts="${__bw_opts}
   --setenv QT_STYLE_OVERRIDE ${QT_STYLE_OVERRIDE}"
     fi
 
-    if [ -n "${XDG_CONFIG_DIRS}" ]; then
-      __bw_opts="${__bw_opts}
-  --setenv XDG_CONFIG_DIRS ${XDG_CONFIG_DIRS}"
-    fi
-
-    if [ -n "${XDG_DATA_DIRS}" ]; then
-      __bw_opts="${__bw_opts}
-  --setenv XDG_DATA_DIRS ${XDG_DATA_DIRS}"
-    fi
+    # GTK/Gnome
+    robind_if_exists "${XDG_CONFIG_HOME}/gtkrc"
+    robind_if_exists "${XDG_CONFIG_HOME}/gtkrc"-*
+    robind_if_exists "${XDG_CONFIG_HOME}/"gtk-*
+    robind_if_exists "${HOME}/".gtkrc*
+    robind_if_exists "${XDG_CONFIG_HOME}/"gtk*
+    robind_if_exists "/etc/"gtk*
   else
     block_in_jail "/etc/"gtk*
   fi
@@ -1046,11 +1054,11 @@ $1"
     fi
 
     # Create a shared shader-cache directory
-    mkdir -p "${HOME}/.cache/mesa_shader_cache" || {
+    mkdir -p "${XDG_CACHE_HOME}/mesa_shader_cache" || {
       printf -- 'Failed prepping mesa_shader_cache cache directory\n'
       return 1
     }
-    bind_if_exists "${HOME}/.cache/mesa_shader_cache"
+    bind_if_exists "${XDG_CACHE_HOME}/mesa_shader_cache"
 
     robind_if_exists "${HOME}/.drirc"
     robind_if_exists "/usr/share/drirc.d"
