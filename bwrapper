@@ -70,6 +70,11 @@ main() {
     return 1
   fi
 
+  mkdir -p "${target_directory}" || {
+    printf -- 'Failed to make target directory: %s\n' "${target_directory}"
+    return 1
+  }
+
   target_file="${target_directory}/${command_name}"
   if [ -f "${target_file}" ]; then
     printf -- 'Remove old file at %s...\n' "${target_file}"
