@@ -234,13 +234,14 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   [FEATURE]
   --noaudio                   Do not allow pulseaudio/pipewire in jail
   --nox11                     Do not bind X11 socket
-  --nodbus                    Do not bind dbus daemon socket
   --nogl                      Do not allow 3D graphics in jail
   --nothemes                  Do not adopt existing desktop themes for GTK and QT
 
   [ALLOW]
+  --dbus                      Allow access to dbus session
   --v4l                       Allow access to v4l devices
   --systemd                   Allow access to systemd from jail
+  --flatpak                   Allow access to flatpak from jail
   --dconf                     Allow access to dconf from jail
   --keyring                   Allow access to gnome-keyring from jail
   --gpg                       Allow access to gnupg from jail
@@ -487,13 +488,6 @@ main() {
       printf -- 'INFO: X11 not allowed in jail\n'
       shift
       ;;
-    --nodbus)
-      __ignore_opts="${__ignore_opts} dbus"
-      run_opts="${run_opts}
---nodbus"
-      printf -- 'INFO: DBUS not allowed in jail\n'
-      shift
-      ;;
     --nogl)
       __ignore_opts="${__ignore_opts} gl"
       run_opts="${run_opts}
@@ -548,6 +542,20 @@ main() {
       run_opts="${run_opts}
 --systemd"
       printf -- 'INFO: systemd allowed in jail\n'
+      shift
+      ;;
+    --flatpak)
+      __ignore_opts="${__ignore_opts} noflatpak"
+      run_opts="${run_opts}
+--flatpak"
+      printf -- 'INFO: flatpak allowed in jail\n'
+      shift
+      ;;
+    --dbus)
+      __ignore_opts="${__ignore_opts} nodbus"
+      run_opts="${run_opts}
+--dbus"
+      printf -- 'INFO: dbus allowed in jail\n'
       shift
       ;;
     --v4l)
@@ -879,9 +887,11 @@ $1"
   block_in_jail "/run/lock"
   block_in_jail "${XDG_RUNTIME_DIR}"
 
-  # Flatpak binding
-  bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak"
-  bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak-helper"
+  # Programs which are aware of flatpak
+  if ! has_option "noflatpak"; then
+    bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak"
+    bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak-helper"
+  fi
 
   # Any program which relies on systemd
   if ! has_option "nosystemd"; then
@@ -941,7 +951,7 @@ $1"
   fi
 
   # If we have a dbus entry in the user run dir
-  if has_option "dbus"; then
+  if ! has_option "nodbus"; then
     robind_if_exists "${HOME}/.dbus"
 
     robind_if_exists "/run/dbus"
@@ -1023,9 +1033,11 @@ $1"
     fi
 
     # Fonts
+    robind_if_exists "/etc/fonts"
     robind_if_exists "${HOME}/.fonts"
     robind_if_exists "${HOME}/.fonts.conf"
     robind_if_exists "${XDG_CONFIG_HOME}/fontconfig"
+    robind_if_exists "${XDG_DATA_HOME}/fonts"
 
     # QT/KDE
     robind_if_exists "${XDG_CONFIG_HOME}/Trolltech.conf"
@@ -1048,6 +1060,7 @@ $1"
     robind_if_exists "${HOME}/".gtkrc*
     robind_if_exists "/etc/"gtk*
   else
+    block_in_jail "/etc/fonts"
     block_in_jail "/etc/"gtk*
   fi
 
