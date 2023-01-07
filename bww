@@ -889,7 +889,8 @@ $1"
 
   # Programs which are aware of flatpak
   if ! has_option "noflatpak"; then
-    bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak"
+    # Outside of flatpak itself, we should never need to know all the various flatpak processes in a non-flatpak app.
+    block_in_jail "${XDG_RUNTIME_DIR}/.flatpak"
     bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak-helper"
   fi
 
