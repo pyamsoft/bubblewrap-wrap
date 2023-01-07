@@ -879,6 +879,10 @@ $1"
   block_in_jail "/run/lock"
   block_in_jail "${XDG_RUNTIME_DIR}"
 
+  # Flatpak binding
+  bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak"
+  bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak-helper"
+
   # Any program which relies on systemd
   if ! has_option "nosystemd"; then
     robind_if_exists "${XDG_CONFIG_HOME}/systemd"
@@ -943,6 +947,7 @@ $1"
     robind_if_exists "/run/dbus"
     bind_if_exists "${XDG_RUNTIME_DIR}/bus"
     bind_if_exists "${XDG_RUNTIME_DIR}/"dbus*
+    bind_if_exists "${XDG_RUNTIME_DIR}/.dbus-proxy"
   fi
 
   # Any program which relies on dconf
