@@ -67,11 +67,13 @@ bwrap_ps()
   }
 }')"
       printf -- '[%s] %s\n' "${pid}" "${_ps_cmd}"
-      unset _ps_out
+      unset _ps_cmd
+      unset pid
     done
   fi
 
-  unset _ps_out
+  unset pid
+  unset _ps_cmd
   unset _all_pids
   return 0
 }
