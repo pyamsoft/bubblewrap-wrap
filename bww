@@ -36,6 +36,47 @@ print_version() {
 }
 
 ##
+# PS all bubblwrapped apps
+bwrap_ps()
+{
+  # https://stackoverflow.com/questions/12373309/ps-clean-way-to-only-get-parent-processes
+  #
+  # Get all parent processes (with full command output so that we can find the --setenv var)
+  # Search them for the ones that include a BW_PID (ignore our own grep)
+  # Print only the PIDs we find
+  # shellcheck disable=SC2009
+  _all_pids="$(ps f --no-headers | grep "BW_PID" | grep -v "grep" | awk '{ print $1 }')"
+
+  if [ -n "${_all_pids}" ]; then
+    for pid in ${_all_pids}; do
+      # Grab all ps output without header and only the ones matching our PID
+      # This awk script goes through grep output until it finds BW_CMD
+      # When it does, it sets a flag
+      # From the point the flag is set it logs out the text following the flag + 3
+      # we use 3 as a magic offset to eat
+      # 0: BW_CMD
+      # 1: <cmd>
+      # 2: --
+      _ps_cmd="$(ps --no-headers -p "${pid}" -o command | grep "BW_CMD" | awk '{
+  f=0;
+  for (i=1; i < NF; i++) {
+    if ($i~/BW_CMD/)
+      f=1;
+    if (f)
+      printf "%s ",$(i + 3)
+  }
+}')"
+      printf -- '[%s] %s\n' "${pid}" "${_ps_cmd}"
+      unset _ps_out
+    done
+  fi
+
+  unset _ps_out
+  unset _all_pids
+  return 0
+}
+
+##
 # Split a long option with embedded equals (=) and return the argument
 # $1 option name
 # $2 argument
@@ -209,6 +250,7 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   [JAIL]
   --forcename <name>          Force the jail to be named using the given name instead of adopting the program's name
   --destroy <name>            Destroy a jail by removing its jail home directory and script file if they exist
+  --ps                        Show all running bwrap processes
 
   [MOUNT]
   --bind-if-exists <path>     Bind a path outside of jail to the same path in jail if the directory exists
@@ -710,6 +752,13 @@ $1"
 --shell"
       shift
       ;;
+    --ps)
+      shift
+
+      # Stop after this
+      bwrap_ps || return 1
+      return 0
+      ;;
     --*)
       pre_opts="${pre_opts} $1"
       run_opts="${run_opts}
@@ -1105,9 +1154,16 @@ $1"
     printf -- '\n%s with options: %s\n\n' "${APP_NAME}" "${run_opts}"
   fi
 
-  # Attach a special environment var so we know what 
-  __bw_opts="${__bw_opts}
-  --setenv BUBBLEPID $$"
+  # Attach a special environment var so we know what is actually running
+  # Attach this at the end of pre_opts so that our bwrap_ps function always works.
+  if [ -n "${pre_opts}" ]; then
+    pre_opts="${pre_opts}
+  --setenv BW_PID $$
+  --setenv BW_CMD ${bw_command}"
+  else
+    pre_opts="--setenv BW_PID $$
+  --setenv BW_CMD ${bw_command}"
+  fi
 
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
