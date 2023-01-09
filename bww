@@ -1107,16 +1107,16 @@ $1"
 
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
-    printf -- 'Run %s: %s\n%s \n%s %s\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}" "${bw_command}" "$*"
+    printf -- 'Run %s: %s\n%s\n-- %s %s\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}" "${bw_command}" "$*"
 
     # shellcheck disable=SC2086
-    exec "${BWRAP}" ${__bw_opts} ${pre_opts} "${bw_command}" "$@" || return 1
+    exec "${BWRAP}" ${__bw_opts} ${pre_opts} -- "${bw_command}" "$@" || return 1
   else
     # Launch bash into the program's jail
-    printf -- 'Run %s: %s\n%s /usr/bin/env bash\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}"
+    printf -- 'Run %s: %s\n%s\n-- /usr/bin/env bash\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}"
 
     # shellcheck disable=SC2086
-    exec "${BWRAP}" ${__bw_opts} ${pre_opts} /usr/bin/env bash || return 1
+    exec "${BWRAP}" ${__bw_opts} ${pre_opts} -- /usr/bin/env bash || return 1
   fi
 
   unset __bw_opts
