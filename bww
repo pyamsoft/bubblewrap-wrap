@@ -1105,15 +1105,23 @@ $1"
     printf -- '\n%s with options: %s\n\n' "${APP_NAME}" "${run_opts}"
   fi
 
+  # Attach a special environment var so we know what 
+  __bw_opts="${__bw_opts}
+  --setenv BUBBLEPID $$"
+
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
     printf -- 'Run %s: %s\n%s\n-- %s %s\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}" "${bw_command}" "$*"
+
+    # Run in an env with this BUBBLEWRAPPED defined so we can ps it later
 
     # shellcheck disable=SC2086
     exec "${BWRAP}" ${__bw_opts} ${pre_opts} -- "${bw_command}" "$@" || return 1
   else
     # Launch bash into the program's jail
     printf -- 'Run %s: %s\n%s\n-- /usr/bin/env bash\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}"
+
+    # Run in an env with this BUBBLEWRAPPED defined so we can ps it later
 
     # shellcheck disable=SC2086
     exec "${BWRAP}" ${__bw_opts} ${pre_opts} -- /usr/bin/env bash || return 1
