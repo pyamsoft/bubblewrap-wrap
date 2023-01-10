@@ -21,7 +21,7 @@
 # bubblewrap-wrap
 
 readonly APP_NAME="bww"
-readonly VERSION="0.0.10"
+readonly VERSION="0.1.0"
 readonly BWRAP="bwrap"
 
 # Support XDG directories
@@ -30,6 +30,8 @@ readonly XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
 readonly XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 readonly XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
+##
+# Prints the version of the script
 print_version() {
   printf -- '%s [%s]\n' "${APP_NAME}" "${VERSION}"
   return 0
@@ -134,12 +136,12 @@ block_in_jail() {
 
   if [ -z "${target}" ]; then
     printf -- 'WARN: Unable to --tmpfs block, no argument\n'
-    return 1
+    return 0
   fi
 
   if [ ! -e "${target}" ]; then
     printf -- 'WARN: Unable to --tmpfs block target: %s, does not exist.\n' "${target}"
-    return 1
+    return 0
   fi
 
   if [ -d "${target}" ]; then
@@ -149,6 +151,8 @@ block_in_jail() {
   else
     printf -- 'WARN: Unable to --tmpfs block non-directory target: %s\n' "${target}"
   fi
+
+  return 0
 }
 
 ##
@@ -159,15 +163,14 @@ __bind_if_exists() {
   bind_command="$1"
   bind_path="$2"
 
-  is_symlink=0
   real_path=""
 
   if [ -e "${bind_path}" ]; then
     # If its a symlink, bind the real file too
     if [ -L "${bind_path}" ]; then
       # We need to check if we can also carry over the original file
-      is_symlink=1
       real_path="$(realpath "${bind_path}")"
+
       if [ -e "${real_path}" ]; then
         printf -- '%s in jail %s\n' "${bind_command}" "${real_path}"
         __bw_opts="${__bw_opts}
@@ -178,20 +181,9 @@ __bind_if_exists() {
       fi
     fi
 
-    if [ "${is_symlink}" -eq 1 ]; then
-      if [ -w "${bind_path}" ]; then
-        printf -- '%s in jail %s\n' "${bind_command}" "${bind_path}"
-        __bw_opts="${__bw_opts}
+    printf -- '%s in jail %s\n' "${bind_command}" "${bind_path}"
+    __bw_opts="${__bw_opts}
   ${bind_command} ${bind_path} ${bind_path}"
-      else
-        printf -- 'WARN: Unable to %s symlink at %s, lacking permission\n' "${bind_command}" \
-          "${bind_path}"
-      fi
-    else
-      printf -- '%s in jail %s\n' "${bind_command}" "${bind_path}"
-      __bw_opts="${__bw_opts}
-  ${bind_command} ${bind_path} ${bind_path}"
-    fi
   else
     printf -- 'WARN: Unable to %s %s, path does not exist\n' "${bind_command}" "${bind_path}"
   fi
@@ -200,6 +192,8 @@ __bind_if_exists() {
   unset bind_command
   unset is_symlink
   unset real_path
+
+  return 0
 }
 
 ##
@@ -207,8 +201,10 @@ __bind_if_exists() {
 # $@ - paths
 bind_if_exists() {
   for path in "$@"; do
-    __bind_if_exists "--bind" "${path}"
+    __bind_if_exists "--bind" "${path}" || return 1
   done
+
+  return 0
 }
 
 ##
@@ -216,8 +212,10 @@ bind_if_exists() {
 # $@ - paths
 robind_if_exists() {
   for path in "$@"; do
-    __bind_if_exists "--ro-bind" "${path}"
+    __bind_if_exists "--ro-bind" "${path}" || return 1
   done
+
+  return 0
 }
 
 ##
@@ -225,8 +223,10 @@ robind_if_exists() {
 # $@ -- paths
 devbind_if_exists() {
   for path in "$@"; do
-    __bind_if_exists "--dev-bind" "${path}"
+    __bind_if_exists "--dev-bind" "${path}" || return 1
   done
+
+  return 0
 }
 
 ##
@@ -313,13 +313,13 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
 
   [FEATURE]
   --noaudio                   Do not allow pulseaudio/pipewire in jail
-  --nox11                     Do not bind X11 socket
+  --nox11                     Do not bind X11 socket in jail
   --nogl                      Do not allow 3D graphics in jail
-  --nothemes                  Do not adopt existing desktop themes for GTK and QT
+  --nothemes                  Do not adopt themes for GTK and QT in jail
 
   [ALLOW]
-  --dbus                      Allow access to dbus session
-  --v4l                       Allow access to v4l devices
+  --dbus                      Allow access to dbus session from jail
+  --v4l                       Allow access to v4l devices from jail
   --systemd                   Allow access to systemd from jail
   --flatpak                   Allow access to flatpak from jail
   --dconf                     Allow access to dconf from jail
@@ -444,6 +444,8 @@ do_destroy() {
   return 0
 }
 
+##
+# Main loop
 main() {
   if ! command -v "${BWRAP}" >/dev/null 2>&1; then
     printf -- '%s is not installed.\n' "${BWRAP}"
@@ -928,14 +930,14 @@ $1"
   --proc /proc"
 
   # Blacklist first
-  block_in_jail "/boot"
+  block_in_jail "/boot" || return 1
 
   # Blacklist any mass storage directories by default
-  block_in_jail "/storage"
+  block_in_jail "/storage" || return 1
 
   # Preset read only binds
-  robind_if_exists "/usr"
-  robind_if_exists "/etc"
+  robind_if_exists "/usr" || return 1
+  robind_if_exists "/etc" || return 1
 
   # Bind var
   robind_if_exists "/var"
@@ -944,24 +946,24 @@ $1"
   --bind ${jail}/var/tmp /var/tmp"
   fi
 
-  block_in_jail "/usr/lib/modules-load.d"
-  block_in_jail "/usr/lib/modprobe.d"
-  block_in_jail "/usr/lib/sysctl.d"
-  block_in_jail "/etc/modules-load.d"
-  block_in_jail "/etc/modprobe.d"
-  block_in_jail "/etc/sysctl.d"
+  block_in_jail "/usr/lib/modules-load.d" || return 1
+  block_in_jail "/usr/lib/modprobe.d" || return 1
+  block_in_jail "/usr/lib/sysctl.d" || return 1
+  block_in_jail "/etc/modules-load.d" || return 1
+  block_in_jail "/etc/modprobe.d" || return 1
+  block_in_jail "/etc/sysctl.d" || return 1
 
   # Not on every system (Debian for example)
-  block_in_jail "/usr/lib/modules"
-  block_in_jail "/usr/lib/modprobe.d"
+  block_in_jail "/usr/lib/modules" || return 1
+  block_in_jail "/usr/lib/modprobe.d" || return 1
 
   # Block /tmp access unless ignored
   if has_option "tmp"; then
-    block_in_jail "/tmp"
+    block_in_jail "/tmp" || return 1
   fi
 
   # Restrict other homes
-  block_in_jail "/home"
+  block_in_jail "/home" || return 1
 
   if [ "${private_jail}" -eq 0 ]; then
     # Bind the jail directory to HOME
@@ -974,147 +976,147 @@ $1"
   fi
 
   # Block the /run directory
-  block_in_jail "/run"
-  block_in_jail "/run/lock"
-  block_in_jail "${XDG_RUNTIME_DIR}"
+  block_in_jail "/run" || return 1
+  block_in_jail "/run/lock" || return 1
+  block_in_jail "${XDG_RUNTIME_DIR}" || return 1
 
   # Programs which are aware of flatpak
   if ! has_option "noflatpak"; then
     # Outside of flatpak itself, we should never need to know all the various flatpak processes in a non-flatpak app.
-    block_in_jail "${XDG_RUNTIME_DIR}/.flatpak"
-    bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak-helper"
+    block_in_jail "${XDG_RUNTIME_DIR}/.flatpak" || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/.flatpak-helper" || return 1
   fi
 
   # Any program which relies on systemd
   if ! has_option "nosystemd"; then
-    robind_if_exists "${XDG_CONFIG_HOME}/systemd"
+    robind_if_exists "${XDG_CONFIG_HOME}/systemd" || return 1
 
     # Bind systemd socket
-    robind_if_exists "/run/systemd"
+    robind_if_exists "/run/systemd" || return 1
 
-    bind_if_exists "${XDG_RUNTIME_DIR}/systemd"
+    bind_if_exists "${XDG_RUNTIME_DIR}/systemd" || return 1
 
-    robind_if_exists "/usr/lib/systemd"
-    robind_if_exists "/etc/systemd"
+    robind_if_exists "/usr/lib/systemd" || return 1
+    robind_if_exists "/etc/systemd" || return 1
   else
-    block_in_jail "/run/systemd"
+    block_in_jail "/run/systemd" || return 1
 
     # Block systemd configuration directories
-    block_in_jail "/usr/lib/systemd"
-    block_in_jail "/etc/systemd"
+    block_in_jail "/usr/lib/systemd" || return 1
+    block_in_jail "/etc/systemd" || return 1
 
     # For systemd-homed
-    robind_if_exists "/run/systemd/userdb"
+    robind_if_exists "/run/systemd/userdb" || return 1
 
     # For systemd-resolved
-    robind_if_exists "/run/systemd/resolve"
+    robind_if_exists "/run/systemd/resolve" || return 1
   fi
 
   # For PulseAudio
   if has_option "audio"; then
-    robind_if_exists "${XDG_CONFIG_HOME}/pulse"
-    robind_if_exists "${XDG_CONFIG_HOME}/pipewire-media-session"
-    robind_if_exists "${XDG_CONFIG_HOME}/pipewire"
+    robind_if_exists "${XDG_CONFIG_HOME}/pulse" || return 1
+    robind_if_exists "${XDG_CONFIG_HOME}/pipewire-media-session" || return 1
+    robind_if_exists "${XDG_CONFIG_HOME}/pipewire" || return 1
 
-    robind_if_exists /run/lock/asound*
-    bind_if_exists "${XDG_RUNTIME_DIR}/"pulse*
-    bind_if_exists "${XDG_RUNTIME_DIR}/"pipewire*
+    robind_if_exists /run/lock/asound* || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/"pulse* || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/"pipewire* || return 1
 
-    devbind_if_exists "/dev/snd"
+    devbind_if_exists "/dev/snd" || return 1
   else
-    block_in_jail "/dev/snd"
+    block_in_jail "/dev/snd" || return 1
   fi
 
   # Bind X11 socket
   if has_option "x11"; then
     if has_option "tmp"; then
-      robind_if_exists "/tmp/.X11-unix/"
+      robind_if_exists "/tmp/.X11-unix/" || return 1
     fi
 
-    robind_if_exists "/etc/X11"
-    robind_if_exists "/usr/share/X11"
+    robind_if_exists "/etc/X11" || return 1
+    robind_if_exists "/usr/share/X11" || return 1
 
     # Authorize clients to connect to Xserver
-    robind_if_exists "${HOME}/.Xauthority"
+    robind_if_exists "${HOME}/.Xauthority" || return 1
   else
-    block_in_jail "/etc/X11"
-    block_in_jail "/usr/share/X11"
-    block_in_jail "/tmp/.X11-unix/"
+    block_in_jail "/etc/X11" || return 1
+    block_in_jail "/usr/share/X11" || return 1
+    block_in_jail "/tmp/.X11-unix/" || return 1
   fi
 
   # If we have a dbus entry in the user run dir
   if ! has_option "nodbus"; then
-    robind_if_exists "${HOME}/.dbus"
+    robind_if_exists "${HOME}/.dbus" || return 1
 
-    robind_if_exists "/run/dbus"
-    bind_if_exists "${XDG_RUNTIME_DIR}/bus"
-    bind_if_exists "${XDG_RUNTIME_DIR}/"dbus*
-    bind_if_exists "${XDG_RUNTIME_DIR}/.dbus-proxy"
+    robind_if_exists "/run/dbus" || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/bus" || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/"dbus* || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/.dbus-proxy" || return 1
   fi
 
   # Any program which relies on dconf
   if ! has_option "nodconf"; then
-    robind_if_exists "${XDG_CONFIG_HOME}/dconf"
-    bind_if_exists "${XDG_RUNTIME_DIR}/dconf"
+    robind_if_exists "${XDG_CONFIG_HOME}/dconf" || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/dconf" || return 1
   fi
 
   # Any program which relies on gnome-keyring
   if ! has_option "nokeyring"; then
-    robind_if_exists "${XDG_DATA_HOME}/keyrings"
-    bind_if_exists "${XDG_RUNTIME_DIR}/keyring"
+    robind_if_exists "${XDG_DATA_HOME}/keyrings" || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/keyring" || return 1
   fi
 
   # Any program which relies on gnupg
   if ! has_option "nogpg"; then
-    robind_if_exists "${HOME}/.gnupg"
-    bind_if_exists "${XDG_RUNTIME_DIR}/gnupg"
+    robind_if_exists "${HOME}/.gnupg" || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/gnupg" || return 1
 
     # Custom location
     if [ -n "${GNUPGHOME}" ]; then
-      robind_if_exists "${GNUPGHOME}"
+      robind_if_exists "${GNUPGHOME}" || return 1
     fi
   fi
 
   # Any program which relies on polkit and p11-kit
   if ! has_option "nop11"; then
     # No user polkit files that I know of
-    bind_if_exists "${XDG_RUNTIME_DIR}/p11-kit"
+    bind_if_exists "${XDG_RUNTIME_DIR}/p11-kit" || return 1
   else
-    block_in_jail "/etc/pkcs11"
-    block_in_jail "/etc/polkit-1"
-    block_in_jail "/usr/share/polkit-1"
-    block_in_jail "/usr/lib/polkit-1"
+    block_in_jail "/etc/pkcs11" || return 1
+    block_in_jail "/etc/polkit-1" || return 1
+    block_in_jail "/usr/share/polkit-1" || return 1
+    block_in_jail "/usr/lib/polkit-1" || return 1
   fi
 
   # Any program which relies on GVFS
   if ! has_option "nogvfs"; then
-    robind_if_exists "${HOME}/.gvfs"
-    robind_if_exists "${XDG_DATA_HOME}/gvfs-metadata"
+    robind_if_exists "${HOME}/.gvfs" || return 1
+    robind_if_exists "${XDG_DATA_HOME}/gvfs-metadata" || return 1
 
-    robind_if_exists "/usr/lib/gvfs"
-    robind_if_exists "/usr/share/gvfs"
-    bind_if_exists "${XDG_RUNTIME_DIR}/gvfs"
+    robind_if_exists "/usr/lib/gvfs" || return 1
+    robind_if_exists "/usr/share/gvfs" || return 1
+    bind_if_exists "${XDG_RUNTIME_DIR}/gvfs" || return 1
   else
-    block_in_jail "/usr/lib/gvfs"
-    block_in_jail "/usr/share/gvfs"
+    block_in_jail "/usr/lib/gvfs" || return 1
+    block_in_jail "/usr/share/gvfs" || return 1
   fi
 
   # Any program which relies on v4l
   if ! has_option "nov4l"; then
     # Bind v4l devices if we are not using real dev
     if has_option "dev"; then
-      devbind_if_exists "/dev/v4l"
-      devbind_if_exists /dev/video*
+      devbind_if_exists "/dev/v4l" || return 1
+      devbind_if_exists /dev/video* || return 1
     fi
   else
-    block_in_jail "/dev/v4l"
-    block_in_jail /dev/video*
+    block_in_jail "/dev/v4l" || return 1
+    block_in_jail /dev/video* || return 1
   fi
 
   # Any theme related dirs
   if has_option "themes"; then
     # XDG
-    robind_if_exists "${XDG_CONFIG_HOME}/"user-dirs*
+    robind_if_exists "${XDG_CONFIG_HOME}/"user-dirs* || return 1
     if [ -n "${XDG_CONFIG_DIRS}" ]; then
       __bw_opts="${__bw_opts}
   --setenv XDG_CONFIG_DIRS ${XDG_CONFIG_DIRS}"
@@ -1125,17 +1127,17 @@ $1"
     fi
 
     # Fonts
-    robind_if_exists "/etc/fonts"
-    robind_if_exists "${HOME}/.fonts"
-    robind_if_exists "${HOME}/.fonts.conf"
-    robind_if_exists "${XDG_CONFIG_HOME}/fontconfig"
-    robind_if_exists "${XDG_DATA_HOME}/fonts"
+    robind_if_exists "/etc/fonts" || return 1
+    robind_if_exists "${HOME}/.fonts" || return 1
+    robind_if_exists "${HOME}/.fonts.conf" || return 1
+    robind_if_exists "${XDG_CONFIG_HOME}/fontconfig" || return 1
+    robind_if_exists "${XDG_DATA_HOME}/fonts" || return 1
 
     # QT/KDE
-    robind_if_exists "${XDG_CONFIG_HOME}/Trolltech.conf"
-    robind_if_exists "${XDG_CONFIG_HOME}/Kvantum"
-    robind_if_exists "${XDG_CONFIG_HOME}/"qt*ct
-    robind_if_exists "${XDG_CONFIG_HOME}/kdeglobals"
+    robind_if_exists "${XDG_CONFIG_HOME}/Trolltech.conf" || return 1
+    robind_if_exists "${XDG_CONFIG_HOME}/Kvantum" || return 1
+    robind_if_exists "${XDG_CONFIG_HOME}/"qt*ct || return 1
+    robind_if_exists "${XDG_CONFIG_HOME}/kdeglobals" || return 1
     if [ -n "${QT_QPA_PLATFORMTHEME}" ]; then
       __bw_opts="${__bw_opts}
   --setenv QT_QPA_PLATFORMTHEME ${QT_QPA_PLATFORMTHEME}"
@@ -1146,20 +1148,20 @@ $1"
     fi
 
     # GTK/Gnome
-    robind_if_exists "${XDG_CONFIG_HOME}/gtkrc"
-    robind_if_exists "${XDG_CONFIG_HOME}/gtkrc"-*
-    robind_if_exists "${XDG_CONFIG_HOME}/"gtk-*
-    robind_if_exists "${HOME}/".gtkrc*
-    robind_if_exists "/etc/"gtk*
+    robind_if_exists "${XDG_CONFIG_HOME}/gtkrc" || return 1
+    robind_if_exists "${XDG_CONFIG_HOME}/gtkrc"-* || return 1
+    robind_if_exists "${XDG_CONFIG_HOME}/"gtk-* || return 1
+    robind_if_exists "${HOME}/".gtkrc* || return 1
+    robind_if_exists "/etc/"gtk* || return 1
   else
-    block_in_jail "/etc/fonts"
-    block_in_jail "/etc/"gtk*
+    block_in_jail "/etc/fonts" || return 1
+    block_in_jail "/etc/"gtk* || return 1
   fi
 
   # Bind the mesa caches so they are not re-created for each jail
   if has_option "gl"; then
     if has_option "dev"; then
-      devbind_if_exists "/dev/dri"
+      devbind_if_exists "/dev/dri" || return 1
     fi
 
     # Create a shared shader-cache directory
@@ -1167,26 +1169,26 @@ $1"
       printf -- 'Failed prepping mesa_shader_cache cache directory\n'
       return 1
     }
-    bind_if_exists "${XDG_CACHE_HOME}/mesa_shader_cache"
+    bind_if_exists "${XDG_CACHE_HOME}/mesa_shader_cache" || return 1
 
-    robind_if_exists "${HOME}/.drirc"
-    robind_if_exists "/usr/share/drirc.d"
-    robind_if_exists "/usr/lib/dri"
+    robind_if_exists "${HOME}/.drirc" || return 1
+    robind_if_exists "/usr/share/drirc.d" || return 1
+    robind_if_exists "/usr/lib/dri" || return 1
   else
-    block_in_jail "/dev/dri"
-    block_in_jail "/usr/share/drirc.d"
-    block_in_jail "/usr/lib/dri"
+    block_in_jail "/dev/dri" || return 1
+    block_in_jail "/usr/share/drirc.d" || return 1
+    block_in_jail "/usr/lib/dri" || return 1
   fi
 
   # Extra binds
   for binding in ${binds}; do
-    bind_if_exists "${binding}"
+    bind_if_exists "${binding}" || return 1
   done
   for robinding in ${robinds}; do
-    robind_if_exists "${robinding}"
+    robind_if_exists "${robinding}" || return 1
   done
   for devbinding in ${devbinds}; do
-    devbind_if_exists "${devbinding}"
+    devbind_if_exists "${devbinding}" || return 1
   done
   unset binds
   unset robinds
@@ -1204,6 +1206,10 @@ $1"
   else
     pre_opts="  --setenv BWW_PROC $$"
   fi
+
+  print_version || return 1
+  bwrap --version || return 1
+  printf -- '\n'
 
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
