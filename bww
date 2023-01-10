@@ -44,17 +44,33 @@ bwrap_ps()
   # Get all parent processes (with full command output so that we can find the --setenv var)
   # Search them for the ones that include a BWW_PROC (ignore our own grep)
   # Print only the PIDs we find
+  
   # shellcheck disable=SC2009
   _all_pids="$(ps f --no-headers | grep "BWW_PROC" | grep -v "grep" | awk '{ print $1 }')"
 
   if [ -n "${_all_pids}" ]; then
-    for pid in ${_all_pids}; do
+    _seen_pids=""
+    for _pid in ${_all_pids}; do
+      _ps_out="$(ps --no-headers -p "${_pid}" -o command)"
+
       # Grab all ps output without header and only the ones matching our PID
-      # This awk script goes through grep output until it finds ' -- '
+      # This awk script goes through grep output until it finds 'BWW_PROC'
+      # When it does, it prints out the next token, which should be the PID
+      _ps_pid="$(printf -- '%s' "${_ps_out}" | grep "BWW_PROC" | awk '{
+  for (i=1; i <= NF; i++) {
+    if ($i == "BWW_PROC") {
+      printf "%s",$(i + 1)
+      break
+    }
+  }
+}')"
+
+      # Grab all ps output without header and only the ones matching our PID
+      # This awk script goes through grep output until it finds '--' exactly
       # When it does, it sets a flag
       # From the point the flag is set it logs out the text following the flag + 1
-      # Print anything after the ' -- ' flag
-      _ps_cmd="$(ps --no-headers -p "${pid}" -o command | grep " -- " | awk '{
+      # Print anything after the '--' flag
+      _ps_cmd="$(printf -- '%s' "${_ps_out}" | grep " -- " | awk '{
   f=0;
   for (i=1; i <= NF; i++) {
     if ($i == "--")
@@ -63,15 +79,38 @@ bwrap_ps()
       printf "%s ",$(i + 1)
   }
 }')"
-      printf -- '[%s] %s\n' "${pid}" "${_ps_cmd}"
+
+      # Don't log a PID we've already seen (if a process forks or we launch with --shell)
+      _skip=0
+      for _p in ${_seen_pids}; do
+        # We have already seen this, continue
+        if [ "${_ps_pid}" = "${_p}" ]; then
+          _skip=1
+          break
+        fi
+      done
+
+      if [ "${_skip}" -eq 0 ]; then
+        # Keep track of PID
+        _seen_pids="${_seen_pids} ${_ps_pid}"
+
+        # Print out basic PID info
+        printf -- '[%s] %s\n' "${_ps_pid}" "${_ps_cmd}"
+      fi
+
+      unset _ps_out
+      unset _ps_pid
       unset _ps_cmd
-      unset pid
+      unset _pid
     done
   fi
 
-  unset pid
+  unset _pid
+  unset _ps_out
+  unset _ps_pid
   unset _ps_cmd
   unset _all_pids
+  unset _seen_pids
   return 0
 }
 
