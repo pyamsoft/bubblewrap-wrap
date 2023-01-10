@@ -32,8 +32,8 @@ exists.
 
 ## Usage
 
-Assuming both `bww` is on your `$PATH` you can do:
-```
+Assuming both `bww` and the `<program>` you want to run are on your `$PATH` you can do:
+```bash
 $ bww <program>
 ```
 
@@ -51,14 +51,32 @@ The `$HOME/.bww/jails` directory will be created for you if it does not exist.
 
 ## Troubleshooting
 
-Not every program will work with `bww` due to its slightly more restrictive nature.
+Not every program will work with `bww` due to its slightly more restrictive nature,
+though many will "just work" out of the box.
+
 If you find a program that does not work, simple possible fixes are things like
 the option `--nodrop`, which will not drop the Linux capabilities that some programs
 expect to be present, the option `--nodev` which grants access to the real `/dev`
-folder, the option `--notmp` which grants access to the real `/tmp` folder, or
-sometimes feature flags like `--p11`, `--gvfs`, `--systemd`, or `--dconf`. Each
-program is specific and you will need to try various options out. You may also need
-to mount directories via `--bind-if-exists`.
+folder, the option `--notmp` which grants access to the real `/tmp` folder.
+
+Often times, a graphical application requires `--dbus`, and many GTK applications
+require feature flags like `--p11`, `--gvfs`, or `--dconf`. In some rare cases, the
+`--systemd` flag may be required. Each program is specific and you will need to
+try various options out.
+
+When in doubt, make sure the program runs on your system normally, and that it runs
+"by default" in `bwrap` by using:
+```bash
+$ bwrap --dev-bind / / <program>
+```
+
+If it does, try running it in `bww` with all of the restrictive options turned off,
+and if it launches, slowly add back restrictions until the program continues to launch.
+Get used to launching programs in the terminal and reading their debugging output,
+for example, common error messages including "system bus" or "session bus" would require
+the flag `--dbus`.
+
+You may also need to mount directories via `--bind-if-exists`.
 
 ## License
 
