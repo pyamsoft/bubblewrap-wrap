@@ -1170,7 +1170,8 @@ $1"
       return 1
     }
     bind_if_exists "${XDG_CACHE_HOME}/mesa_shader_cache" || return 1
-    bind_if_exists "${XDG_CACHE_HOME}/radv_builtin_shaders64" || return 1
+    bind_if_exists "${XDG_CACHE_HOME}/radv_builtin_shaders"* || return 1
+    bind_if_exists "${XDG_CACHE_HOME}/qtshadercache"* || return 1
 
     robind_if_exists "${HOME}/.drirc" || return 1
     robind_if_exists "/usr/share/drirc.d" || return 1
