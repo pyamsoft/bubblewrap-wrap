@@ -1,0 +1,24 @@
+#!/bin/sh
+
+install_into()
+{
+  ln -sfv "$(pwd)"/bwrapper "$1" || {
+    printf -- 'Failed to install bwrapper into %s\n' "$1"
+    return 1
+  }
+
+  ln -sfv "$(pwd)"/bww "$1" || {
+    printf -- 'Failed to install bwrapper into %s\n' "$1"
+    return 1
+  }
+
+  return 0
+}
+
+mkdir -p ~/.local/bin || {
+  printf -- 'Failed to create ~/.local/bin\n'
+  exit 1
+}
+
+install_into ~/.local/bin || exit 1
+exit 0
