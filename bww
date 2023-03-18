@@ -59,12 +59,12 @@ bwrap_ps()
       # This awk script goes through grep output until it finds 'BWW_PROC'
       # When it does, it prints out the next token, which should be the PID
       _ps_pid="$(printf -- '%s' "${_ps_out}" | grep "BWW_PROC" | awk '{
-  for (i=1; i <= NF; i++) {
-    if ($i == "BWW_PROC") {
-      printf "%s",$(i + 1)
-      break
-    }
-  }
+  for (i=1; i <= NF; i++) { \
+    if ($i == "BWW_PROC") { \
+      printf "%s",$(i + 1) \
+      break \
+    } \
+  } \
 }')"
 
       # Grab all ps output without header and only the ones matching our PID
@@ -73,13 +73,13 @@ bwrap_ps()
       # From the point the flag is set it logs out the text following the flag + 1
       # Print anything after the '--' flag
       _ps_cmd="$(printf -- '%s' "${_ps_out}" | grep " -- " | awk '{
-  f=0;
-  for (i=1; i <= NF; i++) {
-    if ($i == "--")
-      f=1;
-    if (f)
-      printf "%s ",$(i + 1)
-  }
+  f=0; \
+  for (i=1; i <= NF; i++) { \
+    if ($i == "--") \
+      f=1; \
+    if (f) \
+      printf "%s ",$(i + 1) \
+  } \
 }')"
 
       # Don't log a PID we've already seen (if a process forks or we launch with --shell)
@@ -146,8 +146,7 @@ block_in_jail() {
 
   if [ -d "${target}" ]; then
     printf -- '--tmpfs blocking target dir %s via tmpfs\n' "${target}"
-    __bw_opts="${__bw_opts}
-  --tmpfs ${target}"
+    __bw_opts="${__bw_opts} --tmpfs ${target}"
   else
     printf -- 'WARN: Unable to --tmpfs block non-directory target: %s\n' "${target}"
   fi
@@ -173,8 +172,7 @@ __bind_if_exists() {
 
       if [ -e "${real_path}" ]; then
         printf -- '%s in jail %s\n' "${bind_command}" "${real_path}"
-        __bw_opts="${__bw_opts}
-  ${bind_command} ${real_path} ${real_path}"
+        __bw_opts="${__bw_opts} ${bind_command} ${real_path} ${real_path}"
       else
         printf -- 'WARN: Unable to %s symlink %s, real path %s does not exist\n' "${bind_command}" \
           "${bind_path}" "${real_path}"
@@ -182,8 +180,7 @@ __bind_if_exists() {
     fi
 
     printf -- '%s in jail %s\n' "${bind_command}" "${bind_path}"
-    __bw_opts="${__bw_opts}
-  ${bind_command} ${bind_path} ${bind_path}"
+    __bw_opts="${__bw_opts} ${bind_command} ${bind_path} ${bind_path}"
   else
     printf -- 'WARN: Unable to %s %s, path does not exist\n' "${bind_command}" "${bind_path}"
   fi
@@ -286,7 +283,7 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   --help-all                  Display this help, and ${BWRAP} --help
 
   [JAIL]
-  --forcename <name>          Force the jail to be named using the given name instead of adopting the program's name
+  --forcename <name>          Force the jail to be named using the given name instead of adopting the program name
   --destroy <name>            Destroy a jail by removing its jail home directory and script file if they exist
   --ps                        Show all running bwrap processes
 
@@ -481,169 +478,145 @@ main() {
       ;;
     --nodie)
       __ignore_opts="${__ignore_opts} die"
-      run_opts="${run_opts}
---nodie"
+      run_opts="${run_opts} --nodie"
       printf -- 'INFO: Child process will not die with %s. Must be killed manually.\n' "${BWRAP}"
       shift
       ;;
     --private)
       private_jail=1
-      run_opts="${run_opts}
---private"
+      run_opts="${run_opts} --private"
       printf -- 'INFO: Private jail requested, HOME is bound to nothing.\n'
       shift
       ;;
     --nodev)
       __ignore_opts="${__ignore_opts} dev"
-      run_opts="${run_opts}
---nodev"
+      run_opts="${run_opts} --nodev"
       printf -- 'INFO: Not sandboxing /dev\n'
       shift
       ;;
     --notmp)
       __ignore_opts="${__ignore_opts} tmp"
-      run_opts="${run_opts}
---notmp"
+      run_opts="${run_opts} --notmp"
       printf -- 'INFO: Not sandboxing /tmp\n'
       shift
       ;;
     --noaudio)
       __ignore_opts="${__ignore_opts} audio"
-      run_opts="${run_opts}
---noaudio"
+      run_opts="${run_opts} --noaudio"
       printf -- 'INFO: PulseAudio/PipeWire not allowed in jail\n'
       shift
       ;;
     --nouser)
       __ignore_opts="${__ignore_opts} user"
-      run_opts="${run_opts}
---nouser"
+      run_opts="${run_opts} --nouser"
       printf -- 'INFO: Not using user namespace\n'
       shift
       ;;
     --noipc)
       __ignore_opts="${__ignore_opts} ipc"
-      run_opts="${run_opts}
---noipc"
+      run_opts="${run_opts} --noipc"
       printf -- 'INFO: Not using IPC namespace\n'
       shift
       ;;
     --nopid)
       __ignore_opts="${__ignore_opts} pid"
-      run_opts="${run_opts}
---nopid"
+      run_opts="${run_opts} --nopid"
       printf -- 'INFO: Not using PID namespace\n'
       shift
       ;;
     --nouts)
       __ignore_opts="${__ignore_opts} uts"
-      run_opts="${run_opts}
---nouts"
+      run_opts="${run_opts} --nouts"
       printf -- 'INFO: Not using UTS namespace\n'
       shift
       ;;
     --nocgroup)
       __ignore_opts="${__ignore_opts} cgroup"
-      run_opts="${run_opts}
---nocgroup"
+      run_opts="${run_opts} --nocgroup"
       printf -- 'INFO: Not using CGROUP namespace\n'
       shift
       ;;
     --nosession)
       __ignore_opts="${__ignore_opts} session"
-      run_opts="${run_opts}
---nosession"
+      run_opts="${run_opts} --nosession"
       printf -- 'INFO: Not running in new session\n'
       shift
       ;;
     --nodrop)
       __ignore_opts="${__ignore_opts} drop"
-      run_opts="${run_opts}
---nodrop"
+      run_opts="${run_opts} --nodrop"
       printf -- 'INFO: Not dropping capabilities\n'
       shift
       ;;
     --nox11)
       __ignore_opts="${__ignore_opts} x11"
-      run_opts="${run_opts}
---nox11"
+      run_opts="${run_opts} --nox11"
       printf -- 'INFO: X11 not allowed in jail\n'
       shift
       ;;
     --nogl)
       __ignore_opts="${__ignore_opts} gl"
-      run_opts="${run_opts}
---nogl"
+      run_opts="${run_opts} --nogl"
       printf -- 'INFO: GL|3d graphics not allowed in jail\n'
       shift
       ;;
     --nothemes)
       __ignore_opts="${__ignore_opts} themes"
-      run_opts="${run_opts}
---nothemes"
+      run_opts="${run_opts} --nothemes"
       printf -- 'INFO: GTK/QT themes not allowed in jail\n'
       shift
       ;;
     --keyring)
       __ignore_opts="${__ignore_opts} nokeyring"
-      run_opts="${run_opts}
---keyring"
+      run_opts="${run_opts} --keyring"
       printf -- 'INFO: gnome-keyring allowed in jail\n'
       shift
       ;;
     --dconf)
       __ignore_opts="${__ignore_opts} nodconf"
-      run_opts="${run_opts}
---dconf"
+      run_opts="${run_opts} --dconf"
       printf -- 'INFO: dconf allowed in jail\n'
       shift
       ;;
     --gpg)
       __ignore_opts="${__ignore_opts} nogpg"
-      run_opts="${run_opts}
---gpg"
+      run_opts="${run_opts} --gpg"
       printf -- 'INFO: gnupg allowed in jail\n'
       shift
       ;;
     --p11)
       __ignore_opts="${__ignore_opts} nop11"
-      run_opts="${run_opts}
---p11"
+      run_opts="${run_opts} --p11"
       printf -- 'INFO: p11-kit allowed in jail\n'
       shift
       ;;
     --gvfs)
       __ignore_opts="${__ignore_opts} nogvfs"
-      run_opts="${run_opts}
---gvfs"
+      run_opts="${run_opts} --gvfs"
       printf -- 'INFO: GVFS allowed in jail\n'
       shift
       ;;
     --systemd)
       __ignore_opts="${__ignore_opts} nosystemd"
-      run_opts="${run_opts}
---systemd"
+      run_opts="${run_opts} --systemd"
       printf -- 'INFO: systemd allowed in jail\n'
       shift
       ;;
     --flatpak)
       __ignore_opts="${__ignore_opts} noflatpak"
-      run_opts="${run_opts}
---flatpak"
+      run_opts="${run_opts} --flatpak"
       printf -- 'INFO: flatpak allowed in jail\n'
       shift
       ;;
     --dbus)
       __ignore_opts="${__ignore_opts} nodbus"
-      run_opts="${run_opts}
---dbus"
+      run_opts="${run_opts} --dbus"
       printf -- 'INFO: dbus allowed in jail\n'
       shift
       ;;
     --v4l)
       __ignore_opts="${__ignore_opts} nov4l"
-      run_opts="${run_opts}
---v4l"
+      run_opts="${run_opts} --v4l"
       printf -- 'INFO: v4l allowed in jail\n'
       shift
       ;;
@@ -652,15 +625,13 @@ main() {
       shift
       # Add to list
       binds="$1 ${binds}"
-      run_opts="${run_opts}
---bind-if-exists $1"
+      run_opts="${run_opts} --bind-if-exists $1"
       shift
       ;;
     --bind-if-exists=*)
       split_arg="$(split_equal_get_arg "$1")"
       binds="${split_arg} ${binds}"
-      run_opts="${run_opts}
---bind-if-exists=${split_arg}"
+      run_opts="${run_opts} --bind-if-exists=${split_arg}"
       unset split_arg
       shift
       ;;
@@ -669,15 +640,13 @@ main() {
       shift
       # Add to list
       robinds="$1 ${robinds}"
-      run_opts="${run_opts}
---robind-if-exists $1"
+      run_opts="${run_opts} --robind-if-exists $1"
       shift
       ;;
     --robind-if-exists=*)
       split_arg="$(split_equal_get_arg "$1")"
       robinds="${split_arg} ${robinds}"
-      run_opts="${run_opts}
---robind-if-exists=${split_arg}"
+      run_opts="${run_opts} --robind-if-exists=${split_arg}"
       unset split_arg
       shift
       ;;
@@ -686,15 +655,13 @@ main() {
       shift
       # Add to list
       devbinds="$1 ${devbinds}"
-      run_opts="${run_opts}
---devbind-if-exists $1"
+      run_opts="${run_opts} --devbind-if-exists $1"
       shift
       ;;
     --devbind-if-exists=*)
       split_arg="$(split_equal_get_arg "$1")"
       devbinds="${split_arg} ${devbinds}"
-      run_opts="${run_opts}
---devbind-if-exists=${split_arg}"
+      run_opts="${run_opts} --devbind-if-exists=${split_arg}"
       unset split_arg
       shift
       ;;
@@ -702,15 +669,13 @@ main() {
       # --forcename should have 1 argument, shift 1 more time
       shift
       force_jail_name="$1"
-      run_opts="${run_opts}
---forcename $1"
+      run_opts="${run_opts} --forcename $1"
       shift
       ;;
     --forcename=*)
       split_arg="$(split_equal_get_arg "$1")"
       force_jail_name="${split_arg}"
-      run_opts="${run_opts}
---forcename=${split_arg}"
+      run_opts="${run_opts} --forcename=${split_arg}"
       unset split_arg
       shift
       ;;
@@ -722,8 +687,7 @@ main() {
     --tmpfs)
       # should have 1 arguments, shift 1 more times
       pre_opts="${pre_opts} $1"
-      run_opts="${run_opts}
---tmpfs $1"
+      run_opts="${run_opts} --tmpfs $1"
       shift
       pre_opts="${pre_opts} $1"
       run_opts="${run_opts} $1"
@@ -732,16 +696,14 @@ main() {
     --tmpfs=*)
       split_arg="$(split_equal_get_arg "$1")"
       pre_opts="${pre_opts} --tmpfs ${split_arg}"
-      run_opts="${run_opts}
---tmpfs=${split_arg}"
+      run_opts="${run_opts} --tmpfs=${split_arg}"
       unset split_arg
       shift
       ;;
     --uid)
       # should have 1 arguments, shift 1 more times
       pre_opts="${pre_opts} $1"
-      run_opts="${run_opts}
---uid $1"
+      run_opts="${run_opts} --uid $1"
       shift
       pre_opts="${pre_opts} $1"
       run_opts="${run_opts} $1"
@@ -750,16 +712,14 @@ main() {
     --uid=*)
       split_arg="$(split_equal_get_arg "$1")"
       pre_opts="${pre_opts} --uid ${split_arg}"
-      run_opts="${run_opts}
---uid=${split_arg}"
+      run_opts="${run_opts} --uid=${split_arg}"
       unset split_arg
       shift
       ;;
     --gid)
       # should have 1 arguments, shift 1 more times
       pre_opts="${pre_opts} $1"
-      run_opts="${run_opts}
---gid $1"
+      run_opts="${run_opts} --gid $1"
       shift
       pre_opts="${pre_opts} $1"
       run_opts="${run_opts} $1"
@@ -768,16 +728,14 @@ main() {
     --gid=*)
       split_arg="$(split_equal_get_arg "$1")"
       pre_opts="${pre_opts} --gid ${split_arg}"
-      run_opts="${run_opts}
---gid=${split_arg}"
+      run_opts="${run_opts} --gid=${split_arg}"
       unset split_arg
       shift
       ;;
     --cap-add)
       # should have 1 arguments, shift 1 more times
       pre_opts="${pre_opts} $1"
-      run_opts="${run_opts}
---cap-add $1"
+      run_opts="${run_opts} --cap-add $1"
       shift
       pre_opts="${pre_opts} $1"
       run_opts="${run_opts} $1"
@@ -786,16 +744,14 @@ main() {
     --cap-add=*)
       split_arg="$(split_equal_get_arg "$1")"
       pre_opts="${pre_opts} --cap-add ${split_arg}"
-      run_opts="${run_opts}
---cap-add=${split_arg}"
+      run_opts="${run_opts} --cap-add=${split_arg}"
       unset split_arg
       shift
       ;;
     --setenv | --bind | --ro-bind)
       # should have 2 arguments, shift 2 more times
       pre_opts="${pre_opts} $1"
-      run_opts="${run_opts}
-$1"
+      run_opts="${run_opts} $1"
       shift
       pre_opts="${pre_opts} $1"
       run_opts="${run_opts} $1"
@@ -806,8 +762,7 @@ $1"
       ;;
     --shell)
       launch_shell=1
-      run_opts="${run_opts}
---shell"
+      run_opts="${run_opts} --shell"
       shift
       ;;
     --ps)
@@ -823,8 +778,7 @@ $1"
       ;;
     --*)
       pre_opts="${pre_opts} $1"
-      run_opts="${run_opts}
-$1"
+      run_opts="${run_opts} $1"
       shift
       ;;
     *)
@@ -855,9 +809,8 @@ $1"
     jail_name="${short_command}"
   fi
 
-  basejaildir="${HOME}/.${APP_NAME}"
-  bindir="${basejaildir}/bin"
-  jaildir="${basejaildir}/jails"
+  bindir="${HOME}/.${APP_NAME}/bin"
+  jaildir="${HOME}/.local/etc/bubblewrap"
 
   # Destroy first if requested
   if [ "${destroy_jail}" -ne 0 ]; then
@@ -879,73 +832,59 @@ $1"
   # Always do this first, order matters
   # If we are marked as do-not-die, then don't add die-with-parent
   if has_option "die"; then
-    __bw_opts="${__bw_opts}
-  --die-with-parent"
+    __bw_opts="${__bw_opts} --die-with-parent"
   fi
 
   # Create a new session unless we are launching a shell
   if has_option "session" && [ "${launch_shell}" -eq 0 ]; then
-    __bw_opts="${__bw_opts}
-  --new-session"
+    __bw_opts="${__bw_opts} --new-session"
   fi
 
   # Handle namespaces before mounting other parts of the file system
   if has_option "user"; then
-    __bw_opts="${__bw_opts}
-  --unshare-user-try"
+    __bw_opts="${__bw_opts} --unshare-user-try"
   fi
 
   if has_option "ipc"; then
-    __bw_opts="${__bw_opts}
-  --unshare-ipc"
+    __bw_opts="${__bw_opts} --unshare-ipc"
   fi
 
   if has_option "pid"; then
-    __bw_opts="${__bw_opts}
-  --unshare-pid"
+    __bw_opts="${__bw_opts} --unshare-pid"
   fi
 
   if has_option "uts"; then
-    __bw_opts="${__bw_opts}
-  --unshare-uts"
+    __bw_opts="${__bw_opts} --unshare-uts"
   fi
 
   if has_option "cgroup"; then
-    __bw_opts="${__bw_opts}
-  --unshare-cgroup-try"
+    __bw_opts="${__bw_opts} --unshare-cgroup-try"
   fi
 
   if has_option "drop"; then
-    __bw_opts="${__bw_opts}
-  --cap-drop ALL"
+    __bw_opts="${__bw_opts} --cap-drop ALL"
   fi
 
   # If the user wants access to devices, we can't make read only
   if has_option "dev"; then
-    __bw_opts="${__bw_opts}
-  --ro-bind / /"
+    __bw_opts="${__bw_opts} --ro-bind / /"
 
     # If we fake dev, mount fake dev stuff
-    __bw_opts="${__bw_opts}
-  --dev /dev"
+    __bw_opts="${__bw_opts} --dev /dev"
 
     # If we are not sharing IPC, then we cannot mount a new mqueue
     if has_option "ipc"; then
-      __bw_opts="${__bw_opts}
-  --mqueue /dev/mqueue"
+      __bw_opts="${__bw_opts} --mqueue /dev/mqueue"
     fi
   else
-    __bw_opts="${__bw_opts}
-  --dev-bind / /"
+    __bw_opts="${__bw_opts} --dev-bind / /"
   fi
 
   # robind sys
-  __bw_opts="${__bw_opts}
-  --ro-bind /sys /sys"
+  __bw_opts="${__bw_opts} --ro-bind /sys /sys"
 
   # Basically always meant to block /proc
-  __bw_opts="${__bw_opts}
-  --proc /proc"
+  __bw_opts="${__bw_opts} --proc /proc"
 
   # Blacklist first
   block_in_jail "/boot" || return 1
@@ -960,8 +899,7 @@ $1"
   # Bind var
   robind_if_exists "/var"
   if [ "${private_jail}" -eq 0 ]; then
-    __bw_opts="${__bw_opts}
-  --bind ${jail}/var/tmp /var/tmp"
+    __bw_opts="${__bw_opts} --bind ${jail}/var/tmp /var/tmp"
   fi
 
   block_in_jail "/usr/lib/modules-load.d" || return 1
@@ -985,12 +923,10 @@ $1"
 
   if [ "${private_jail}" -eq 0 ]; then
     # Bind the jail directory to HOME
-    __bw_opts="${__bw_opts}
-  --bind ${jail}/home ${HOME}"
+    __bw_opts="${__bw_opts} --bind ${jail}/home ${HOME}"
   else
     # Bind the jail to a tmpfs
-    __bw_opts="${__bw_opts}
-  --tmpfs ${HOME}"
+    __bw_opts="${__bw_opts} --tmpfs ${HOME}"
   fi
 
   # Block the /run directory
@@ -1136,12 +1072,10 @@ $1"
     # XDG
     robind_if_exists "${XDG_CONFIG_HOME}/"user-dirs* || return 1
     if [ -n "${XDG_CONFIG_DIRS}" ]; then
-      __bw_opts="${__bw_opts}
-  --setenv XDG_CONFIG_DIRS ${XDG_CONFIG_DIRS}"
+      __bw_opts="${__bw_opts} --setenv XDG_CONFIG_DIRS ${XDG_CONFIG_DIRS}"
     fi
     if [ -n "${XDG_DATA_DIRS}" ]; then
-      __bw_opts="${__bw_opts}
-  --setenv XDG_DATA_DIRS ${XDG_DATA_DIRS}"
+      __bw_opts="${__bw_opts} --setenv XDG_DATA_DIRS ${XDG_DATA_DIRS}"
     fi
 
     # Fonts
@@ -1157,12 +1091,10 @@ $1"
     robind_if_exists "${XDG_CONFIG_HOME}/"qt*ct || return 1
     robind_if_exists "${XDG_CONFIG_HOME}/kdeglobals" || return 1
     if [ -n "${QT_QPA_PLATFORMTHEME}" ]; then
-      __bw_opts="${__bw_opts}
-  --setenv QT_QPA_PLATFORMTHEME ${QT_QPA_PLATFORMTHEME}"
+      __bw_opts="${__bw_opts} --setenv QT_QPA_PLATFORMTHEME ${QT_QPA_PLATFORMTHEME}"
     fi
     if [ -n "${QT_STYLE_OVERRIDE}" ]; then
-      __bw_opts="${__bw_opts}
-  --setenv QT_STYLE_OVERRIDE ${QT_STYLE_OVERRIDE}"
+      __bw_opts="${__bw_opts} --setenv QT_STYLE_OVERRIDE ${QT_STYLE_OVERRIDE}"
     fi
 
     # GTK/Gnome
@@ -1221,8 +1153,7 @@ $1"
   # Attach a special environment var so we know what is actually running
   # Attach this at the end of pre_opts so that our bwrap_ps function always works.
   if [ -n "${pre_opts}" ]; then
-    pre_opts="${pre_opts}
-  --setenv BWW_PROC $$"
+    pre_opts="${pre_opts} --setenv BWW_PROC $$"
   else
     pre_opts="  --setenv BWW_PROC $$"
   fi
