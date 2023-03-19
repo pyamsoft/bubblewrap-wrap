@@ -1155,7 +1155,7 @@ main() {
   if [ -n "${pre_opts}" ]; then
     pre_opts="${pre_opts} --setenv BWW_PROC $$"
   else
-    pre_opts="  --setenv BWW_PROC $$"
+    pre_opts="--setenv BWW_PROC $$"
   fi
 
   print_version || return 1
@@ -1164,7 +1164,7 @@ main() {
 
   if [ "${launch_shell}" -eq 0 ]; then
     # Launch the program
-    printf -- 'Run %s: %s\n%s\n%s %s\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}" "${bw_command}" "$*"
+    printf -- 'Run %s: %s %s %s %s\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}" "${bw_command}" "$*"
 
     # Run in an env with this BUBBLEWRAPPED defined so we can ps it later
 
@@ -1172,7 +1172,7 @@ main() {
     exec "${BWRAP}" ${__bw_opts} ${pre_opts} -- "${bw_command}" "$@" || return 1
   else
     # Launch bash into the program's jail
-    printf -- 'Run %s: %s\n%s\n/usr/bin/env bash\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}"
+    printf -- 'Run %s: %s %s /usr/bin/env bash\n' "${BWRAP}" "${__bw_opts}" "${pre_opts}"
 
     # Run in an env with this BUBBLEWRAPPED defined so we can ps it later
 
