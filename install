@@ -1,7 +1,6 @@
 #!/bin/sh
 
-install_into()
-{
+install_into() {
   ln -sfv "$(pwd)"/bwrapper "$1" || {
     printf -- 'Failed to install bwrapper into %s\n' "$1"
     return 1

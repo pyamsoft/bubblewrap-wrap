@@ -39,14 +39,13 @@ print_version() {
 
 ##
 # PS all bubblwrapped apps
-bwrap_ps()
-{
+bwrap_ps() {
   # https://stackoverflow.com/questions/12373309/ps-clean-way-to-only-get-parent-processes
   #
   # Get all parent processes (with full command output so that we can find the --setenv var)
   # Search them for the ones that include a BWW_PROC (ignore our own grep)
   # Print only the PIDs we find
-  
+
   # shellcheck disable=SC2009
   _all_pids="$(ps f --no-headers | grep "BWW_PROC" | grep -v "grep" | awk '{ print $1 }')"
 
