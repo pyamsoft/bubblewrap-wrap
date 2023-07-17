@@ -449,6 +449,49 @@ _is_valid_varname() {
   fi
 }
 
+_export_env() {
+  _ex="$1"
+  _as_bw_opt="$2"
+
+  # Attempt to evaluate the var
+  if _is_valid_varname "${_ex}"; then
+      # Valid go
+      _eval_ready_var_name="$(printf -- '$%s' "${_ex}")"
+      _var_resolved=""
+      if eval "_var_resolved=\"${_eval_ready_var_name}\"" >/dev/null 2>&1; then
+        if [ -n "${_var_resolved}" ]; then
+          if [ -n "${_as_bw_opt}" ] && [ "${_as_bw_opt}" -eq 1 ]; then
+            # shellcheck disable=SC2089
+            __bw_opts="${__bw_opts} --setenv $1 '${_var_resolved}'" 
+          else
+            # shellcheck disable=SC2089
+            pre_opts="${pre_opts} --setenv $1 '${_var_resolved}'" 
+          fi
+        fi
+      else
+        # Failed to eval, don't export
+        printf -- 'Cannot exportenv for bad variable: %s\n' "${_ex}"
+
+        unset _eval_ready_var_name
+        unset _var_resolved
+        unset _ex
+        return 1
+      fi
+  else
+    printf -- 'Cannot exportenv invalid variable name: %s\n' "${_ex}"
+
+    unset _eval_ready_var_name
+    unset _var_resolved
+    unset _ex
+    return 1
+  fi
+
+  unset _eval_ready_var_name
+  unset _var_resolved
+  unset _ex
+  return 0
+}
+
 ##
 # Main loop
 main() {
@@ -773,45 +816,14 @@ main() {
       run_opts="${run_opts} $1"
       shift
       run_opts="${run_opts} $1"
-
-      # Attempt to evaluate the var
-      if _is_valid_varname "$1"; then
-          # Valid go
-          _eval_ready_var_name="$(printf -- '$%s' "$1")"
-          _var_resolved=""
-          if eval "_var_resolved=\"${_eval_ready_var_name}\"" >/dev/null 2>&1; then
-            pre_opts="${pre_opts} --setenv $1 '${_var_resolved}'" 
-          else
-            # Failed to eval, don't export
-            printf -- 'Cannot exportenv for bad variable: %s\n' "$1"
-          fi
-          unset _eval_ready_var_name
-          unset _var_resolved
-      else
-          printf -- 'Cannot exportenv invalid variable name: %s\n' "$1"
-      fi
+      _export_env "$1" 0
       shift
       ;;
     --exportenv=*)
       split_arg="$(split_equal_get_arg "$1")"
       run_opts="${run_opts} --exportenv ${split_arg}"
-
-      # Attempt to evaluate the var
-      if _is_valid_varname "${split_arg}"; then
-          # Valid go
-          _eval_ready_var_name="$(printf -- '$%s' "${split_arg}")"
-          _var_resolved=""
-          if eval "_var_resolved=\"${_eval_ready_var_name}\"" >/dev/null 2>&1; then
-            pre_opts="${pre_opts} --setenv ${split_arg} '${_var_resolved}'" 
-          else
-            # Failed to eval, don't export
-            printf -- 'Cannot exportenv for bad variable: %s\n' "${split_arg}"
-          fi
-          unset _eval_ready_var_name
-          unset _var_resolved
-      else
-          printf -- 'Cannot exportenv invalid variable name: %s\n' "${split_arg}"
-      fi
+      _export_env "${split_arg}" 0
+      unset split_arg
       shift
       ;;
     --shell)
@@ -1046,10 +1058,12 @@ main() {
 
     # Authorize clients to connect to Xserver
     robind_if_exists "${HOME}/.Xauthority" || return 1
+    robind_if_exists "${XDG_RUNTIME_DIR}/gdm/Xauthority" || return 1
   else
     block_in_jail "/etc/X11" || return 1
     block_in_jail "/usr/share/X11" || return 1
     block_in_jail "/tmp/.X11-unix/" || return 1
+    block_in_jail "${XDG_RUNTIME_DIR}/gdm" || return 1
   fi
 
   # If we have a dbus entry in the user run dir
@@ -1125,12 +1139,8 @@ main() {
   if has_option "themes"; then
     # XDG
     robind_if_exists "${XDG_CONFIG_HOME}/"user-dirs* || return 1
-    if [ -n "${XDG_CONFIG_DIRS}" ]; then
-      __bw_opts="${__bw_opts} --setenv XDG_CONFIG_DIRS ${XDG_CONFIG_DIRS}"
-    fi
-    if [ -n "${XDG_DATA_DIRS}" ]; then
-      __bw_opts="${__bw_opts} --setenv XDG_DATA_DIRS ${XDG_DATA_DIRS}"
-    fi
+    _export_env XDG_CONFIG_DIRS 1
+    _export_env XDG_DATA_DIRS 1
 
     # Fonts
     robind_if_exists "/etc/fonts" || return 1
@@ -1144,12 +1154,8 @@ main() {
     robind_if_exists "${XDG_CONFIG_HOME}/Kvantum" || return 1
     robind_if_exists "${XDG_CONFIG_HOME}/"qt*ct || return 1
     robind_if_exists "${XDG_CONFIG_HOME}/kdeglobals" || return 1
-    if [ -n "${QT_QPA_PLATFORMTHEME}" ]; then
-      __bw_opts="${__bw_opts} --setenv QT_QPA_PLATFORMTHEME ${QT_QPA_PLATFORMTHEME}"
-    fi
-    if [ -n "${QT_STYLE_OVERRIDE}" ]; then
-      __bw_opts="${__bw_opts} --setenv QT_STYLE_OVERRIDE ${QT_STYLE_OVERRIDE}"
-    fi
+    _export_env QT_QPA_PLATFORMTHEME 1
+    _export_env QT_STYLE_OVERRIDE 1
 
     # GTK/Gnome
     robind_if_exists "${XDG_CONFIG_HOME}/gtkrc" || return 1
@@ -1218,7 +1224,7 @@ main() {
 
     # Run in an env with this BUBBLEWRAPPED defined so we can ps it later
 
-    # shellcheck disable=SC2086
+    # shellcheck disable=SC2086,SC2090
     exec "${BWRAP}" ${__bw_opts} ${pre_opts} -- "${bw_command}" "$@" || return 1
   else
     # Launch bash into the program's jail
@@ -1226,7 +1232,7 @@ main() {
 
     # Run in an env with this BUBBLEWRAPPED defined so we can ps it later
 
-    # shellcheck disable=SC2086
+    # shellcheck disable=SC2086,SC2090
     exec "${BWRAP}" ${__bw_opts} ${pre_opts} -- /usr/bin/env bash "$@" || return 1
   fi
 
