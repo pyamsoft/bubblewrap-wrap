@@ -284,6 +284,7 @@ usage: ${APP_NAME} [options] <program> [program-arguments]
   [JAIL]
   --forcename <name>          Force the jail to be named using the given name instead of adopting the program name
   --destroy <name>            Destroy a jail by removing its jail home directory and script file if they exist
+  --exportenv <name>          Pass an environment variable from the host through to the jail
   --ps                        Show all running bwrap processes
 
   [MOUNT]
@@ -438,6 +439,14 @@ do_destroy() {
   unset do_destroy__name
   unset do_destroy__cmd
   return 0
+}
+
+_is_valid_varname() {
+  if printf -- '%s' "$1" | grep -q '^[_[:alpha:]][_[:alpha:][:digit:]]*$'; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 ##
@@ -757,6 +766,52 @@ main() {
       shift
       pre_opts="${pre_opts} $1"
       run_opts="${run_opts} $1"
+      shift
+      ;;
+    --exportenv)
+      # should have 1 argument, shift 1 more time
+      run_opts="${run_opts} $1"
+      shift
+      run_opts="${run_opts} $1"
+
+      # Attempt to evaluate the var
+      if _is_valid_varname "$1"; then
+          # Valid go
+          _eval_ready_var_name="$(printf -- '$%s' "$1")"
+          _var_resolved=""
+          if eval "_var_resolved=\"${_eval_ready_var_name}\"" >/dev/null 2>&1; then
+            pre_opts="${pre_opts} --setenv $1 '${_var_resolved}'" 
+          else
+            # Failed to eval, don't export
+            printf -- 'Cannot exportenv for bad variable: %s\n' "$1"
+          fi
+          unset _eval_ready_var_name
+          unset _var_resolved
+      else
+          printf -- 'Cannot exportenv invalid variable name: %s\n' "$1"
+      fi
+      shift
+      ;;
+    --exportenv=*)
+      split_arg="$(split_equal_get_arg "$1")"
+      run_opts="${run_opts} --exportenv ${split_arg}"
+
+      # Attempt to evaluate the var
+      if _is_valid_varname "${split_arg}"; then
+          # Valid go
+          _eval_ready_var_name="$(printf -- '$%s' "${split_arg}")"
+          _var_resolved=""
+          if eval "_var_resolved=\"${_eval_ready_var_name}\"" >/dev/null 2>&1; then
+            pre_opts="${pre_opts} --setenv ${split_arg} '${_var_resolved}'" 
+          else
+            # Failed to eval, don't export
+            printf -- 'Cannot exportenv for bad variable: %s\n' "${split_arg}"
+          fi
+          unset _eval_ready_var_name
+          unset _var_resolved
+      else
+          printf -- 'Cannot exportenv invalid variable name: %s\n' "${split_arg}"
+      fi
       shift
       ;;
     --shell)
