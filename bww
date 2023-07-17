@@ -171,7 +171,7 @@ __bind_if_exists() {
 
       if [ -e "${real_path}" ]; then
         printf -- '%s in jail %s\n' "${bind_command}" "${real_path}"
-        __bw_opts="${__bw_opts} ${bind_command} ${real_path} ${real_path}"
+        __bw_opts="${__bw_opts} ${bind_command} '${real_path}' '${real_path}'"
       else
         printf -- 'WARN: Unable to %s symlink %s, real path %s does not exist\n' "${bind_command}" \
           "${bind_path}" "${real_path}"
@@ -461,11 +461,9 @@ _export_env() {
       if eval "_var_resolved=\"${_eval_ready_var_name}\"" >/dev/null 2>&1; then
         if [ -n "${_var_resolved}" ]; then
           if [ -n "${_as_bw_opt}" ] && [ "${_as_bw_opt}" -eq 1 ]; then
-            # shellcheck disable=SC2089
-            __bw_opts="${__bw_opts} --setenv $1 '${_var_resolved}'" 
+            __bw_opts="${__bw_opts} --setenv $1 ${_var_resolved}" 
           else
-            # shellcheck disable=SC2089
-            pre_opts="${pre_opts} --setenv $1 '${_var_resolved}'" 
+            pre_opts="${pre_opts} --setenv $1 ${_var_resolved}" 
           fi
         fi
       else
